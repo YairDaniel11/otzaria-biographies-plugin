@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ביוגרפיות תנאים ואמוראים</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="wrap">
+  <div class="topbar">
+    <div class="tabs" id="tabs">
+      <button class="tab active" type="button" data-tab="bio">ביוגרפיות תנאים ואמוראים</button>
+      <button class="tab" type="button" data-tab="seder">סדר הדורות</button>
+      <button class="tab" type="button" data-tab="events">לוח אירועים</button>
+      <button class="tab" type="button" data-tab="masaot">מסעות במדבר</button>
+    </div>
+    <label class="search" id="bioSearch">
+      <span class="ic" id="searchIcon"></span>
+      <input id="q" type="search" placeholder="חיפוש שם או תוכן…" autocomplete="off" />
+      <button class="clearbtn" id="clearBtn" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
+    </label>
+    <label class="search" id="sederSearch">
+      <span class="ic" id="sederSIcon"></span>
+      <input id="sederQ" type="search" placeholder="חיפוש שם, אירוע או תקופה…" autocomplete="off" />
+      <button class="clearbtn" id="sederClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
+    </label>
+    <label class="search" id="eventsSearch">
+      <span class="ic" id="eventsSIcon"></span>
+      <input id="eventsQ" type="search" placeholder="חיפוש אירוע, מקור או תאריך…" autocomplete="off" />
+      <button class="clearbtn" id="eventsClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
+    </label>
+    <label class="search" id="masaotSearch">
+      <span class="ic" id="masaotSIcon"></span>
+      <input id="masaotQ" type="search" placeholder="חיפוש תחנה, פרשה או מקור…" autocomplete="off" />
+      <button class="clearbtn" id="masaotClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
+    </label>
+    <span id="count"></span>
+    <span id="sederCount" class="seder-count"></span>
+    <span id="eventsCount" class="seder-count"></span>
+    <span id="masaotCount" class="seder-count"></span>
+    <button class="fontbtn" id="fontBtn" title="גופן וגודל טקסט" aria-label="גופן וגודל טקסט">א<span style="font-size:.7em">א</span></button>
+    <div class="fontpanel" id="fontPanel" hidden>
+      <div class="fp-row">
+        <label for="fpFamily">גופן</label>
+        <input id="fpFamily" class="fp-family" list="fpFontList" placeholder="ברירת מחדל (גופן המערכת)" autocomplete="off" spellcheck="false" />
+        <datalist id="fpFontList">
+          <option value="David"></option>
+          <option value="Frank Ruhl Libre"></option>
+          <option value="FrankRuhlCLM"></option>
+          <option value="Narkisim"></option>
+          <option value="Gisha"></option>
+          <option value="Miriam"></option>
+          <option value="Arial"></option>
+          <option value="Times New Roman"></option>
+          <option value="Calibri"></option>
+          <option value="Segoe UI"></option>
+        </datalist>
+        <button class="fp-load" id="fpLoadFonts" type="button">טען את כל הגופנים שבמחשב</button>
+        <div class="fp-hint" id="fpFontHint">אפשר להקליד שם של כל גופן שמותקן במחשב, או לבחור מהרשימה.</div>
+      </div>
+      <div class="fp-row">
+        <label class="fp-check"><input type="checkbox" id="fpHeadings" /> החל גם על הכותרות והממשק</label>
+      </div>
+      <div class="fp-row">
+        <label for="fpSize">גודל טקסט</label>
+        <div class="fp-size">
+          <input type="range" id="fpSize" min="14" max="30" step="1" />
+          <span class="fp-val" id="fpSizeVal"></span>
+        </div>
+      </div>
+      <div class="fp-row">
+        <button class="fp-reset" id="fpReset">איפוס לברירת מחדל</button>
+      </div>
+    </div>
+  </div>
+  <nav class="azbar" id="azbar"></nav>
+  <div class="main" id="main">
+    <section class="pane-list">
+      <div class="scroll" id="scroll">
+        <div class="list" id="list"></div>
+      </div>
+    </section>
+    <div class="divider" id="divider" title="גרור לכוונון רוחב העמודה"></div>
+    <section class="pane-detail" id="detail">
+      <div class="detail-nav" id="dnav" hidden>
+        <button class="navbtn navlist" id="navList"></button>
+        <button class="navbtn" id="navBack" title="הערך הקודם שנצפה"></button>
+        <button class="navbtn" id="navFwd" title="הערך הבא / אקראי"></button>
+        <span class="spacer"></span>
+        <button class="navbtn rand" id="navRand"></button>
+      </div>
+      <div class="dcontent" id="dcontent">
+        <div class="placeholder"><span class="big" id="phIcon"></span>
+          <div>בחר ערך מהרשימה או פתח ערך אקראי</div></div>
+      </div>
+    </section>
+  </div>
+  <div class="seder-view" id="sederView" hidden>
+    <div class="seder-layout">
+      <nav class="sidenav" id="sederNav"></nav>
+      <div class="seder-wrap" id="sederApp"></div>
+    </div>
+    <div class="scrim" id="sederScrim"></div>
+    <aside class="drawer" id="sederDrawer">
+      <div class="drawer-head">
+        <button class="drawer-close" id="sederDrawerClose" aria-label="סגור"></button>
+        <div class="t" id="sederDrawerTitle"></div>
+      </div>
+      <div class="drawer-body" id="sederDrawerBody"></div>
+    </aside>
+  </div>
+  <div class="seder-view events-view" id="eventsView" hidden>
+    <div class="seder-layout">
+      <nav class="sidenav" id="eventsNav"></nav>
+      <div class="seder-wrap" id="eventsApp"></div>
+    </div>
+  </div>
+  <div class="seder-view masaot-view" id="masaotView" hidden>
+    <div class="seder-layout">
+      <nav class="sidenav" id="masaotNav"></nav>
+      <div class="seder-wrap" id="masaotApp"></div>
+    </div>
+  </div>
+</div>
+
+<!-- כפתור צף: דיווח על שגיאה בתוכן (פינה שמאלית-תחתונה) -->
+<button class="report-fab" id="reportFab" type="button" title="דיווח על שגיאה בתוכן" aria-label="דיווח על שגיאה בתוכן"></button>
+
+<!-- חלונית דיווח על שגיאה בתוכן -->
+<div class="report-overlay" id="reportOverlay" hidden>
+  <div class="report-modal" role="dialog" aria-modal="true" aria-labelledby="reportTitle">
+    <div class="report-head">
+      <span class="report-head-ic" id="reportHeadIc"></span>
+      <div class="report-head-text">
+        <div class="report-title" id="reportTitle">דיווח על שגיאה בתוכן</div>
+        <div class="report-subtitle">עזרו לנו לשפר את דיוק הביוגרפיות</div>
+      </div>
+      <button class="report-close" id="reportClose" type="button" aria-label="סגור"></button>
+    </div>
+
+    <div class="report-body">
+      <div class="report-context" id="reportContext" hidden></div>
+
+      <div class="rf-group">
+        <label class="rf-label" for="rfName">שם מלא <span class="rf-req">*</span></label>
+        <input class="rf-input" type="text" id="rfName" placeholder="ישראל ישראלי" autocomplete="name">
+      </div>
+
+      <div class="rf-group">
+        <label class="rf-label" for="rfEmail">כתובת מייל <span class="rf-req">*</span></label>
+        <input class="rf-input" type="email" id="rfEmail" placeholder="israel@example.com" autocomplete="email" dir="ltr">
+      </div>
+
+      <div class="rf-group">
+        <label class="rf-label" for="rfDetails">פרטי הדיווח <span class="rf-req">*</span></label>
+        <textarea class="rf-input rf-textarea" id="rfDetails" placeholder="תארו את השגיאה — באיזה ערך, מה כתוב, ומה התיקון הנכון."></textarea>
+      </div>
+
+      <div class="report-status" id="reportStatus"></div>
+    </div>
+
+    <div class="report-actions">
+      <button class="rf-btn rf-btn-send" id="rfSend" type="button"></button>
+      <button class="rf-btn rf-btn-cancel" id="rfCancel" type="button">ביטול</button>
+    </div>
+  </div>
+</div>
+
+<script src="data/bio-data.js"></script>
+<script src="data/bio-enrich.js"></script>
+<script src="data/events-data.js"></script>
+<script src="data/masaot-data.js"></script>
+<script src="seder-hadorot/seder-list.js"></script>
+<script src="js/icons.js"></script>
+<script src="js/common.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
