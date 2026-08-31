@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "com.otzaria.biographies-tannaim-amoraim",
   "name": "ביוגרפיות",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "אנציקלופדיית תנאים ואמוראים + סדר הדורות + מסעות במדבר + לוח אירועים: חיפוש, קישורים בין ערכים ולמקורות, תיוג פרשות, בחירת גופן ודיווח שגיאות.",
   "author": "Yair Daniel",
   "minAppVersion": "0.9.93",
@@ -16,7 +16,8 @@
     "reader.open",
     "ui.feedback",
     "network.access",
-    "events.subscribe:theme.changed"
+    "events.subscribe:theme.changed",
+    "events.subscribe:settings.changed"
   ],
   "network": {
     "enabled": true,
