@@ -988,6 +988,20 @@ async function detectInstalledFonts() {
   const RN_KEY = 'bio-report-name', RE_KEY = 'bio-report-email';
   let otzVersion = '';
 
+  // network.fetch removed in Otzaria 0.9.98 (returns error.unknown_method) --
+  // replacement is network.fetchStream, which returns an AsyncIterable of
+  // chunks instead of a single response. This wrapper buffers them back
+  // into one response.
+  async function fetchText(url, options) {
+    let meta = null, body = '';
+    for await (const chunk of Otzaria.call('network.fetchStream', { url, ...(options || {}) })) {
+      if (chunk.type === 'response') meta = chunk;
+      else if (chunk.type === 'data') body += chunk.body;
+    }
+    if (!meta) throw new Error('no response');
+    return { status: meta.status, ok: meta.ok, headers: meta.headers, body };
+  }
+
   const fab     = document.getElementById('reportFab');
   const overlay = document.getElementById('reportOverlay');
   const closeBtn= document.getElementById('reportClose');
@@ -1101,27 +1115,15 @@ async function detectInstalledFonts() {
     };
 
     try {
-      // network.fetch ולא fetch() ישיר: רץ בצד אוצריא ולכן אינו כפוף ל-CORS,
+      // network.fetchStream ולא fetch() ישיר: רץ בצד אוצריא ולכן אינו כפוף ל-CORS,
       // ועובר דרך מנגנון האישור של רשימת ההיתר (דורש network.access)
-      const res = await Otzaria.call('network.fetch', {
-        url: EMAILJS_URL,
+      const res = await fetchText(EMAILJS_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      if (!res.success) {
-        const err = res.error || {};
-        const msg = err.code === 'error.forbidden'
-          ? 'גישת הרשת לכתובת זו אינה מאושרת.'
-          : err.code === 'error.permission_denied'
-          ? 'חסרה הרשאת גישה לרשת — אשרו אותה בהגדרות התוסף.'
-          : (err.message || 'שגיאה לא ידועה');
-        setStatus('שליחת הדיווח נכשלה — ' + msg + (err.retryable ? ' נסו שוב.' : ''), 'error');
-        setSending(false);
-        return;
-      }
-      if (!res.data.ok) {
-        setStatus('שליחת הדיווח נכשלה (' + (res.data.body || ('קוד ' + res.data.status)) + '). נסו שוב.', 'error');
+      if (!res.ok) {
+        setStatus('שליחת הדיווח נכשלה (' + (res.body || ('קוד ' + res.status)) + '). נסו שוב.', 'error');
         setSending(false);
         return;
       }
@@ -1130,7 +1132,13 @@ async function detectInstalledFonts() {
       setSending(false);
       setTimeout(() => { if (!sending) closeModal(); }, 2400);
     } catch (e) {
-      setStatus('שליחת הדיווח נכשלה — בדקו חיבור לרשת ונסו שוב.', 'error');
+      const msg = e?.message || '';
+      const friendly = msg.includes('error.forbidden')
+        ? 'גישת הרשת לכתובת זו אינה מאושרת.'
+        : msg.includes('error.permission_denied')
+        ? 'חסרה הרשאת גישה לרשת — אשרו אותה בהגדרות התוסף.'
+        : 'בדקו חיבור לרשת ונסו שוב.';
+      setStatus('שליחת הדיווח נכשלה — ' + friendly, 'error');
       setSending(false);
     }
   }
