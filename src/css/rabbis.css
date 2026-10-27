@@ -1,0 +1,272 @@
+/* ===========================================================================
+ *  טאב "ראשונים ואחרונים" — Material 3. צבעים רק ממשתני theme (ראו style.css).
+ * ========================================================================= */
+.rb-view{flex:1; min-height:0; display:flex; flex-direction:column; background:var(--c-sc-low);
+  font-size:var(--fs-ui); font-family:var(--ui-font)}
+.rb-view[hidden]{display:none}
+
+/* תקופות: נקודת צבע משותפת לצ'יפים, לשורות, לרצועה ולעקומה */
+.rb-edot{display:inline-block; flex:0 0 auto; width:9px; height:9px; border-radius:50%; background:var(--c-outline)}
+.rb-edot.e1{background:var(--e1)} .rb-edot.e2{background:var(--e2)} .rb-edot.e3{background:var(--e3)}
+.rb-edot.e4{background:var(--e4)} .rb-edot.e5{background:var(--e5)} .rb-edot.e6{background:var(--e6)}
+
+/* סרגל כלים */
+.rb-tools{display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; padding:4px 14px 2px; font-size:calc(var(--fs-ui) * .68)}
+.rb-grow{flex:1}
+.rb-seg{display:inline-flex; border-radius:var(--r-pill); overflow:hidden; box-shadow:inset 0 0 0 1px var(--c-outline); background:var(--c-surface)}
+.rb-mode{font:inherit; font-weight:600; cursor:pointer; border:0; background:transparent; color:var(--c-on-surface);
+  display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 14px; white-space:nowrap; transition:background .15s, color .15s}
+.rb-mode + .rb-mode{box-shadow:inset 1px 0 0 var(--c-outline)}
+.rb-mode svg{display:block}
+.rb-mode .ck{display:none}
+.rb-mode:hover{background:var(--hover)}
+.rb-mode.on{background:var(--c-secondary-container); color:var(--c-on-secondary-container)}
+.rb-mode.on .ck{display:inline-flex}
+.rb-mode.on .mi{display:none}
+.rb-sortw{display:inline-flex; align-items:center; gap:6px; cursor:pointer; color:var(--c-on-surface-var); font-weight:500}
+.rb-sortw .si{display:inline-flex}
+.rb-view select{font:inherit; font-weight:600; color:var(--c-on-surface); background:var(--c-surface); border:0;
+  box-shadow:inset 0 0 0 1px var(--c-outline); border-radius:var(--r-pill); height:30px; padding:0 12px; cursor:pointer}
+.rb-view select:hover{background:var(--c-sc)}
+.rb-view select:focus-visible{outline:2px solid var(--c-primary); outline-offset:2px}
+/* מתג (switch) לחיפוש בביוגרפיה */
+.rb-bio{position:relative; display:inline-flex; align-items:center; gap:8px; cursor:pointer; color:var(--c-on-surface-var); font-weight:500}
+.rb-bio input{position:absolute; opacity:0; width:0; height:0}
+.rb-bio .sw{position:relative; width:40px; height:24px; border-radius:var(--r-pill); background:var(--c-sc-highest);
+  box-shadow:inset 0 0 0 2px var(--c-outline); transition:background .2s, box-shadow .2s; flex:0 0 auto}
+.rb-bio .sw::after{content:""; position:absolute; top:6px; right:6px; width:12px; height:12px; border-radius:50%;
+  background:var(--c-outline); transition:all .2s var(--ease)}
+.rb-bio input:checked + .sw{background:var(--c-primary); box-shadow:none}
+.rb-bio input:checked + .sw::after{right:6px; transform:translateX(-16px); width:16px; height:16px; top:4px; background:var(--c-on-primary)}
+.rb-bio input:focus-visible + .sw{outline:2px solid var(--c-primary); outline-offset:2px}
+.rb-prog{color:var(--c-on-surface-var); font-size:.92em}
+.rb-sortw[hidden], .rb-chips[hidden], .rb-tl[hidden], .rb-yz[hidden], .rb-note[hidden]{display:none}
+
+/* צ'יפים של תקופות */
+.rb-chips{display:flex; flex-wrap:nowrap; overflow-x:auto; gap:8px; padding:4px 14px 8px; scrollbar-width:none}
+.rb-chips::-webkit-scrollbar{display:none}
+.rb-chip{font:inherit; font-size:calc(var(--fs-ui) * .62); font-weight:500; cursor:pointer; white-space:nowrap; color:var(--c-on-surface-var);
+  display:inline-flex; align-items:center; gap:7px; flex:0 0 auto; height:32px;
+  background:var(--c-surface); border:0; box-shadow:inset 0 0 0 1px var(--c-outline-var); border-radius:var(--r-sm); padding:0 14px;
+  transition:background .15s, box-shadow .15s, color .15s}
+.rb-chip small{font-size:.86em; font-weight:400; opacity:.75}
+.rb-chip:hover{background:var(--c-sc); color:var(--c-on-surface)}
+.rb-chip.on{background:var(--c-secondary-container); color:var(--c-on-secondary-container); box-shadow:none; font-weight:700}
+
+/* ---- אזור ציר הדורות: מתקפל לגמרי (כפתור "הסתר ציר"), בקיפול עדין ---- */
+.rb-tlbtn{font:inherit; font-weight:700; cursor:pointer; border:0; display:inline-flex; align-items:center; gap:6px; height:30px; padding:0 12px 0 10px;
+  border-radius:var(--r-pill); background:var(--c-secondary-container); color:var(--c-on-secondary-container);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--c-primary) 35%, transparent), var(--sh1);
+  white-space:nowrap; transition:background .15s, color .15s, box-shadow .15s}
+/* נקודת מצב: ציר פעיל */
+.rb-tlbtn::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--c-primary); flex:0 0 auto;
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--c-primary) 22%, transparent)}
+.rb-tlbtn:hover:not(:disabled){background:color-mix(in srgb, var(--c-secondary) 30%, var(--c-secondary-container))}
+.rb-tlbtn .ti, .rb-tlbtn .tc{display:inline-flex}
+.rb-tlbtn .tc{transition:transform .25s var(--ease); opacity:.85}
+.rb-tlbtn.is-off{background:var(--c-primary); color:var(--c-on-primary); box-shadow:var(--sh2)}
+.rb-tlbtn.is-off::before{background:transparent; box-shadow:inset 0 0 0 2px var(--c-on-primary)}
+.rb-tlbtn.is-off:hover{background:color-mix(in srgb, var(--c-primary) 88%, var(--c-on-primary))}
+.rb-tlbtn.is-off .tc{transform:rotate(180deg)}
+.rb-tlbtn:disabled{opacity:.4; cursor:default}
+
+.rb-tlbox{display:grid; grid-template-rows:1fr; transition:grid-template-rows .28s var(--ease), opacity .22s var(--ease)}
+.rb-tlin{min-height:0}
+.rb-tlbox.off{grid-template-rows:0fr; opacity:0; visibility:hidden; transition:grid-template-rows .28s var(--ease), opacity .2s var(--ease), visibility 0s .28s}
+.rb-tlbox.off > .rb-tlin, .rb-tlbox.moving > .rb-tlin{overflow:hidden}
+
+.rb-tl{margin:0 14px 4px}
+.rb-tlc{position:relative; background:var(--c-surface); border-radius:var(--r-xl); box-shadow:var(--sh1); padding:0 14px 2px}
+.rb-tlc-head{display:flex; align-items:center; gap:10px; min-height:26px}
+.rb-tlc-title{display:flex; align-items:baseline; gap:10px; min-width:0; flex:1}
+.rb-tlc-title b{font-size:calc(var(--fs-ui) * .62); color:var(--c-on-surface); white-space:nowrap}
+.rb-tlc-title small{font-size:calc(var(--fs-ui) * .5); color:var(--c-on-surface-var); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.rb-tlc-title small[hidden]{display:none}
+.rb-tlc-slot{display:flex; align-items:center; gap:8px; flex:0 0 auto; min-width:0}
+.rb-tlc-tools{display:flex; gap:0; flex:0 0 auto}
+.rb-ib{display:inline-flex; align-items:center; justify-content:center; border:0; background:transparent; cursor:pointer;
+  color:var(--c-on-surface-var); width:24px; height:24px; border-radius:50%; padding:0; transition:background .12s, color .12s, transform .1s}
+.rb-ib:hover:not(:disabled){background:var(--c-secondary-container); color:var(--c-on-secondary-container)}
+.rb-ib:active:not(:disabled){transform:scale(.92)}
+.rb-ib:disabled{opacity:.32; cursor:default}
+.rb-ib svg{display:block}
+.rb-read, .rb-note{display:inline-flex; align-items:center; gap:10px; min-width:0}
+.rb-read[hidden]{display:none}
+.rb-read{background:var(--c-primary-container); color:var(--c-on-primary-container); border-radius:var(--r-pill); padding:0 3px 0 10px; font-size:calc(var(--fs-ui) * .54)}
+.rb-chip-s{height:22px; padding:0 9px; font-size:calc(var(--fs-ui) * .5)}
+
+.rb-tlc-wrap{position:relative; width:100%; min-height:90px}
+.rb-svg{display:block; width:100%; touch-action:pan-y; -webkit-user-select:none; user-select:none; overflow:visible; direction:ltr}
+.rb-svg text{font-family:var(--ui-font); font-size:calc(var(--fs-ui) * .48); fill:var(--c-on-surface-var); direction:rtl}
+.rb-svg [tabindex]:focus-visible{outline:none}
+.rb-svg [tabindex]:focus-visible .rb-lmbg, .rb-svg [tabindex]:focus-visible .rb-grip{stroke:var(--c-primary); stroke-width:2.5}
+.rb-tlc.dragging .rb-svg{cursor:grabbing}
+
+/* שלד טעינה לפני שהנתונים מוכנים */
+.rb-tlc-skel{position:absolute; inset:0; display:flex; align-items:flex-end; padding:0 20px 34px; pointer-events:none; opacity:1; transition:opacity .25s}
+.rb-tlc.has-data .rb-tlc-skel{opacity:0}
+.rb-tlc-skel span{display:block; width:100%; height:45%; border-radius:40% 40% 0 0 / 70% 70% 0 0;
+  background:linear-gradient(100deg, var(--c-sc) 30%, var(--c-sc-highest) 50%, var(--c-sc) 70%); background-size:300% 100%; animation:shimmer 1.4s linear infinite}
+
+/* רכיבי הציר */
+.rb-band{fill:var(--e); opacity:.08; transition:opacity .2s}
+.rb-band.on{opacity:.18}
+.rb-grid{stroke:var(--c-outline-var); stroke-width:1; stroke-dasharray:2 4; opacity:.8}
+.rb-base{stroke:var(--c-outline-var); stroke-width:1.5}
+.rb-fill{fill:var(--e); opacity:.72}
+.rb-line{fill:none; stroke:var(--c-on-surface); stroke-width:1.3; opacity:.5; stroke-linejoin:round}
+.rb-ghost{fill:none; stroke:var(--c-outline); stroke-width:1.2; stroke-dasharray:3 3; opacity:.8}
+.rb-bar{fill:transparent; cursor:pointer}
+.rb-bar:hover, .rb-bar.hv{fill:color-mix(in srgb, var(--c-on-surface) 8%, transparent)}
+.rb-hline{stroke:var(--c-on-surface); stroke-width:1; opacity:.35; pointer-events:none}
+.rb-era{cursor:pointer}
+.rb-era-bg{fill:color-mix(in srgb, var(--e) 24%, var(--c-surface)); stroke:color-mix(in srgb, var(--e) 55%, transparent); stroke-width:1; transition:fill .15s}
+.rb-era:hover .rb-era-bg{fill:color-mix(in srgb, var(--e) 40%, var(--c-surface))}
+.rb-era.on .rb-era-bg{fill:var(--e); stroke:var(--e)}
+.rb-svg .rb-era-t{fill:var(--c-on-surface); font-weight:700; pointer-events:none}
+.rb-svg .rb-era.on .rb-era-t{fill:var(--c-surface)}
+.rb-tick{stroke:var(--c-outline); stroke-width:1}
+.rb-svg .rb-ax{fill:var(--c-on-surface); font-weight:600; direction:ltr; font-variant-numeric:tabular-nums}
+.rb-dim{fill:var(--c-surface); opacity:.7; pointer-events:none}
+.rb-selbody{fill:var(--c-primary); opacity:.08; cursor:grab}
+.rb-seltop{stroke:var(--c-primary); stroke-width:3; stroke-linecap:round; pointer-events:none}
+.rb-hhit{fill:transparent; cursor:ew-resize}
+.rb-hline2{stroke:var(--c-primary); stroke-width:2; pointer-events:none}
+.rb-grip{fill:var(--c-primary); stroke:var(--c-surface); stroke-width:2; cursor:ew-resize; filter:drop-shadow(0 1px 2px color-mix(in srgb, var(--c-shadow) 35%, transparent))}
+.rb-gripl{stroke:var(--c-on-primary); stroke-width:1.3; stroke-linecap:round; pointer-events:none}
+.rb-ypill{fill:var(--c-primary); pointer-events:none}
+.rb-svg .rb-ypt{fill:var(--c-on-primary); font-weight:700; pointer-events:none; font-variant-numeric:tabular-nums}
+.rb-lm{cursor:pointer}
+.rb-lmbg{fill:var(--c-surface); stroke:var(--c-outline-var); stroke-width:1; transition:fill .12s, stroke .12s}
+.rb-svg .rb-lmt{fill:var(--c-on-surface); font-weight:600; pointer-events:none}
+.rb-lm:hover .rb-lmbg{fill:var(--c-primary); stroke:var(--c-primary)}
+.rb-lm:hover .rb-lmt{fill:var(--c-on-primary)}
+.rb-stem{stroke:var(--c-outline); stroke-width:1; stroke-dasharray:1.5 2.5}
+.rb-dot{fill:var(--c-surface); stroke:var(--c-primary); stroke-width:2}
+.rb-lm:hover .rb-dot{fill:var(--c-primary)}
+.rb-cur line{stroke:var(--c-tertiary); stroke-width:2}
+.rb-cur circle{fill:var(--c-tertiary); stroke:var(--c-surface); stroke-width:2}
+
+/* tooltip: מעל הציר כולו (מחוץ ל-svg), לעולם לא תופס עכבר ולא מכסה ידיות/מברשת; נעלם בזמן גרירה */
+.rb-pop{position:absolute; z-index:20; pointer-events:none; background:var(--c-inverse-surface); color:var(--c-inverse-on-surface);
+  border-radius:var(--r-md); padding:5px 12px; box-shadow:var(--sh3); font-size:calc(var(--fs-ui) * .58); line-height:1.4;
+  max-width:min(360px, 92%); white-space:nowrap}
+.rb-pop[hidden], .rb-tlc.dragging .rb-pop{display:none}
+.rb-pop-y{font-weight:700; font-variant-numeric:tabular-nums; overflow:hidden; text-overflow:ellipsis}
+.rb-pop-y span{font-weight:400; opacity:.72}
+.rb-pop-y b{font-size:1.1em}
+.rb-pop-e{opacity:.85; overflow:hidden; text-overflow:ellipsis}
+
+/* יארצייט היום */
+.rb-yz{margin:4px 14px 10px; padding:16px 20px; background:var(--c-tertiary-container); color:var(--c-on-tertiary-container); border-radius:var(--r-xl); animation:rise .3s var(--ease)}
+.rb-yz-h{font-size:1.2em; font-weight:700; margin-bottom:10px}
+.rb-yz-c{display:flex; flex-wrap:wrap; align-items:center; gap:10px 14px; font-size:calc(var(--fs-ui) * .66)}
+.rb-yz-c label{display:inline-flex; align-items:center; gap:8px; font-weight:600}
+.rb-yz-c .navbtn{background:var(--c-tertiary); color:var(--c-on-tertiary)}
+.rb-yz-c .navbtn[hidden]{display:none}
+
+/* תווית טווח מותאם — הקישור אל הרשימה */
+.rb-note{display:flex; align-items:center; gap:10px; margin:0 14px 8px; padding:6px 8px 6px 14px; font-size:calc(var(--fs-ui) * .66);
+  background:var(--c-primary-container); color:var(--c-on-primary-container); border-radius:var(--r-pill); width:fit-content; max-width:calc(100% - 28px); animation:rise .25s var(--ease)}
+.rb-note-l{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-weight:700}
+.rb-note-c{white-space:nowrap; font-weight:500; opacity:.85; font-variant-numeric:tabular-nums}
+.rb-note-x{display:inline-flex; border:0; background:transparent; color:inherit; cursor:pointer; padding:5px; border-radius:50%}
+.rb-note-x:hover{background:var(--hover)}
+
+/* גוף: רשימה + כרטיס */
+.rb-body{flex:1; min-height:0; display:flex; position:relative; gap:14px; padding:2px 14px 10px}
+.rb-lp{width:400px; min-width:200px; max-width:50%; display:flex; flex-direction:column; background:var(--c-surface);
+  border-radius:var(--r-xl); box-shadow:var(--sh1); overflow:hidden}
+.rb-lh{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:12px 20px 10px; flex:0 0 auto;
+  border-bottom:1px solid var(--c-outline-var); font-size:calc(var(--fs-ui) * .62); color:var(--c-on-surface-var)}
+.rb-lh .lh-t{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+.rb-lh .lh-n{font-weight:700; color:var(--c-on-secondary-container); background:var(--c-secondary-container); border-radius:var(--r-pill); padding:1px 10px}
+.rb-scroll{flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; padding:6px 0}
+.rb-dp{flex:1; min-width:0; overflow-y:auto; background:var(--c-surface); border-radius:var(--r-xl); box-shadow:var(--sh1); scrollbar-width:thin}
+.rb-row{font-size:.92em; animation:rise .25s var(--ease) both}
+.rb-row .nm{min-width:0; overflow-wrap:anywhere}
+.rb-k{color:var(--c-on-surface-var); font-size:.8em; font-weight:400}
+.rb-yrs{flex:0 0 auto; font-size:.72em; font-weight:500; color:var(--c-on-surface-var); white-space:nowrap; direction:ltr; unicode-bidi:isolate}
+.row.active .rb-yrs, .row.active .rb-k{color:inherit; opacity:.8}
+.rb-nav{display:none}
+
+/* מצבי טעינה / ריק / שגיאה */
+.rb-status{padding:36px 20px; display:flex; flex-direction:column; align-items:center; gap:14px; text-align:center; color:var(--c-on-surface-var); font-family:var(--ui-font); font-size:calc(var(--fs-ui) * .75)}
+.rb-status[hidden]{display:none}
+.rb-smsg{display:flex; flex-direction:column; align-items:center; gap:8px}
+.rb-tip{font-size:.82em; opacity:.85}
+.rb-spin{width:34px; height:34px; border-radius:50%; border:3px solid var(--c-outline-var); border-top-color:var(--c-primary); animation:spin .8s linear infinite}
+.rb-sic{width:64px; height:64px; border-radius:var(--r-xl); display:flex; align-items:center; justify-content:center; background:var(--c-secondary-container); color:var(--c-on-secondary-container)}
+.rb-sic.err{background:var(--c-error-container); color:var(--c-on-error-container)}
+.rb-sic svg{display:block}
+.rb-skels{display:flex; flex-direction:column; gap:12px; width:100%; margin-top:6px}
+.rb-skels i{display:block; height:14px; border-radius:var(--r-sm); margin-inline:auto 0; align-self:flex-start;
+  background:linear-gradient(90deg, var(--c-sc) 30%, var(--c-sc-highest) 50%, var(--c-sc) 70%); background-size:300% 100%; animation:shimmer 1.4s linear infinite}
+
+/* כרטיס */
+.rb-msg{padding:30px 0; color:var(--c-on-surface-var)}
+.rb-life{margin:0 0 18px}
+.rb-life .bar{position:relative; height:10px; border-radius:var(--r-pill); overflow:hidden; background:var(--c-sc)}
+.rb-life .bar i{position:absolute; top:0; bottom:0; opacity:.35}
+.rb-life .bar i.e1{background:var(--e1)} .rb-life .bar i.e2{background:var(--e2)} .rb-life .bar i.e3{background:var(--e3)}
+.rb-life .bar i.e4{background:var(--e4)} .rb-life .bar i.e5{background:var(--e5)} .rb-life .bar i.e6{background:var(--e6)}
+.rb-life .bar b{position:absolute; top:0; bottom:0; min-width:6px; border-radius:var(--r-pill); background:var(--c-on-surface); box-shadow:0 0 0 2px var(--c-surface)}
+.rb-life .ends{display:flex; justify-content:space-between; font-size:calc(var(--fs-ui) * .5); color:var(--c-on-surface-var); margin-top:3px; direction:rtl}
+.rb-facts{margin:0 0 14px; padding:6px 18px; background:var(--c-sc-low); border-radius:var(--r-lg)}
+.rb-f{display:flex; gap:14px; padding:9px 0; font-size:.92em}
+.rb-f + .rb-f{border-top:1px solid var(--c-outline-var)}
+.rb-f b{flex:0 0 4.5em; color:var(--c-on-surface-var); font-weight:600; font-family:var(--ui-font); font-size:.84em; padding-top:.1em}
+.rb-f span{min-width:0; overflow-wrap:anywhere}
+.rb-yzl{color:var(--c-primary); cursor:pointer; font-weight:600; border-bottom:1px dashed var(--c-primary)}
+.rb-acts{display:flex; flex-wrap:wrap; gap:8px; margin:0 0 16px}
+.rb-bio-t{white-space:pre-line; line-height:1.75}
+.rb-src{margin-top:16px; font-size:.84em; color:var(--c-on-surface-var)}
+.rb-h{font-size:.9em; font-family:var(--ui-font); font-weight:700; color:var(--c-primary); margin:24px 0 10px}
+.rb-books{display:flex; flex-wrap:wrap; gap:8px}
+.rb-book{font:inherit; font-size:.82em; cursor:pointer; color:var(--c-on-surface); text-align:start; display:inline-flex; align-items:flex-start; gap:6px;
+  background:var(--c-surface); border:0; box-shadow:inset 0 0 0 1px var(--c-outline-var); border-radius:var(--r-md); padding:7px 12px; transition:background .15s, box-shadow .15s}
+.rb-book svg{display:block; margin-top:.2em; color:var(--c-primary)}
+.rb-book:hover{background:var(--c-secondary-container); box-shadow:none}
+.rb-book small{color:var(--c-on-surface-var)}
+
+/* מקורות: פריט שקיים בספרייה לחיץ */
+.rb-srcitem.ok{color:var(--c-primary); cursor:pointer; border-bottom:1px dotted var(--c-primary)}
+.rb-srcitem.ok:hover{background:var(--tint)}
+
+/* מובייל / מסך צר */
+@media(max-width:720px){
+  .rb-tools{padding:10px 10px 4px; gap:6px 10px}
+  .rb-mode{padding:0 12px; height:30px}
+  .rb-grow{display:none}
+  .rb-chips{padding:4px 10px 8px}
+  .rb-tl{margin:2px 8px 6px}
+  .rb-tlc{padding:4px 8px 4px}
+  .rb-tlc-title small{display:none}
+  .rb-tlbtn{height:30px; padding:0 10px}
+  .rb-tlbtn .tc{display:none}
+  .rb-yz, .rb-note{margin-inline:8px}
+  .rb-body{padding:2px 8px 10px; overflow:hidden}
+  .rb-lp{width:100%; max-width:100%}
+  .rb-dp{position:absolute; inset:2px 8px 10px; transform:translateX(-110%); transition:transform .28s var(--ease); z-index:10}
+  .rb-view.show-detail .rb-dp{transform:translateX(0)}
+  .rb-nav{display:flex}
+  .rb-ib{width:26px; height:26px}
+  .rb-read{font-size:calc(var(--fs-ui) * .54)}
+}
+
+.rb-dp .placeholder{height:100%; min-height:240px}
+.rb-row:focus-visible{outline-offset:-2px}
+.rb-tlbox{margin:0}
+@media (prefers-reduced-motion:reduce){.rb-tlbox, .rb-tlbox.off{transition-duration:.01ms!important}}
+
+/* שורת הצ'יפים (כשהציר מוסתר) יושבת בתוך סרגל הכלים כדי לחסוך גובה */
+.rb-tools .rb-chips{flex:1 1 0; min-width:120px; padding:0 4px}
+.rb-tools .rb-chips[hidden]{display:none}
+.rb-tools .rb-chip{height:28px}
+@media(max-width:720px){
+  .rb-tools .rb-chips{flex:1 1 100%; order:5; padding:2px 0 2px}
+}
+.rb-tools .rb-chips:not([hidden]) ~ .rb-grow{display:none}
+.rb-tools .rb-chip small{display:none}
+@media(max-width:720px){.rb-tools .rb-chip small{display:inline}}
+.rb-stem{pointer-events:none}

@@ -8,24 +8,36 @@ function applyOtzariaTheme(theme) {
   if (!theme) return;
   const cs = theme.colorScheme || {};
   const r = document.documentElement;
-  const set = (k, v) => { if (v) r.style.setProperty(k, v); };
-  set('--c-primary', cs.primary);
-  set('--c-on-primary', cs.onPrimary);
-  set('--c-surface', cs.surface);
-  set('--c-on-surface', cs.onSurface);
-  set('--c-surface-2', cs.surfaceContainerHighest);
-  // רקע פס הכותרת — surfaceContainerHigh, כמו הסרגל העליון של מסכי הספרים
-  set('--c-topbar', cs.surfaceContainerHigh);
-  set('--c-outline', cs.outline);
-  set('--c-error', cs.error);
-  if (cs.primary && /^#[0-9a-fA-F]{6}$/.test(cs.primary)) {
-    const m = cs.primary.slice(1);
-    const R = parseInt(m.substr(0, 2), 16), G = parseInt(m.substr(2, 2), 16), B = parseInt(m.substr(4, 2), 16);
-    r.style.setProperty('--c-primary-subtle', 'rgba(' + R + ',' + G + ',' + B + ',0.12)');
-  }
+  /* כל תפקידי הצבע של Material 3 מגיעים מה-API. תפקיד חסר נמחק (removeProperty) כדי שהנגזרת
+     שב-:root (color-mix מ-primary/surface) תיכנס במקומו — כך גם מארח ישן וגם ערכת צבעים חלקית נראים תקינים. */
+  const MAP = {
+    '--c-primary': 'primary', '--c-on-primary': 'onPrimary',
+    '--c-primary-container': 'primaryContainer', '--c-on-primary-container': 'onPrimaryContainer',
+    '--c-secondary': 'secondary', '--c-on-secondary': 'onSecondary',
+    '--c-secondary-container': 'secondaryContainer', '--c-on-secondary-container': 'onSecondaryContainer',
+    '--c-tertiary': 'tertiary', '--c-on-tertiary': 'onTertiary',
+    '--c-tertiary-container': 'tertiaryContainer', '--c-on-tertiary-container': 'onTertiaryContainer',
+    '--c-surface': 'surface', '--c-on-surface': 'onSurface', '--c-on-surface-var': 'onSurfaceVariant',
+    '--c-sc-lowest': 'surfaceContainerLowest', '--c-sc-low': 'surfaceContainerLow',
+    '--c-sc': 'surfaceContainer', '--c-sc-high': 'surfaceContainerHigh', '--c-sc-highest': 'surfaceContainerHighest',
+    '--c-outline': 'outline', '--c-outline-var': 'outlineVariant',
+    '--c-error': 'error', '--c-on-error': 'onError',
+    '--c-error-container': 'errorContainer', '--c-on-error-container': 'onErrorContainer',
+    '--c-inverse-surface': 'inverseSurface', '--c-inverse-on-surface': 'onInverseSurface',
+    '--c-shadow': 'shadow', '--c-scrim': 'scrim'
+  };
+  Object.keys(MAP).forEach(k => {
+    const v = cs[MAP[k]];
+    if (v) r.style.setProperty(k, v); else r.style.removeProperty(k);
+  });
+  // גופן הממשק של אוצריא (uiFontFamily) הוא ברירת המחדל של ה-chrome; בורר הגופן של המשתמש עדיין גובר
+  const tf = theme.typography && theme.typography.uiFontFamily;
+  if (tf) r.style.setProperty('--ui-font-def', "'" + tf + "', system-ui, -apple-system, 'Segoe UI', sans-serif");
   // גופן וגודל: ברירת המחדל של התוסף היא גופן המערכת בגודל 20 (לא יורשים מאוצריא) —
   // אלא אם המשתמש בחר אחרת בבורר הגופן.
-  document.body.classList.toggle('dark', theme.mode === 'dark');
+  const dark = theme.mode === 'dark';
+  document.body.classList.toggle('dark', dark);
+  r.classList.toggle('dark', dark);
   applyUserFontPrefs();
 }
 
@@ -278,7 +290,9 @@ document.getElementById('navRand').onclick = goRandom;
 /* אייקוני FluentUI (RTL: "הקודם" מצביע ימינה, "הבא" שמאלה) */
 document.getElementById('searchIcon').innerHTML = icon('search', 18);
 document.getElementById('clearBtn').innerHTML = icon('dismiss', 16);
-document.getElementById('phIcon').innerHTML = icon('person', 48);
+document.getElementById('phIcon').innerHTML = icon('person', 40);
+document.getElementById('brandIc').innerHTML = icon('person_filled', 22);
+document.querySelectorAll('.tab-ic').forEach(n => { n.innerHTML = icon(n.dataset.ic, 20); });
 navBack.innerHTML = icon('chevron_right', 16) + '<span>הקודם</span>';
 navFwd.innerHTML = '<span>הבא</span>' + icon('chevron_left', 16);
 document.getElementById('navRand').innerHTML = icon('arrow_shuffle', 16) + '<span>ערך אקראי</span>';
@@ -626,6 +640,7 @@ async function detectInstalledFonts() {
   const sederView = document.getElementById('sederView');
   const eventsView = document.getElementById('eventsView');
   const masaotView = document.getElementById('masaotView');
+  const rbView = document.getElementById('rbView');
   if (!tabs || !sederView) return;
   let sederInited = false;
   let eventsInited = false;
@@ -635,17 +650,21 @@ async function detectInstalledFonts() {
     const seder = (name === 'seder');
     const events = (name === 'events');
     const masaot = (name === 'masaot');
+    const rb = (name === 'rb');
     document.body.classList.toggle('mode-seder', seder);
     document.body.classList.toggle('mode-events', events);
     document.body.classList.toggle('mode-masaot', masaot);
-    mainEl.hidden = seder || events || masaot;
+    document.body.classList.toggle('mode-rb', rb);
+    mainEl.hidden = seder || events || masaot || rb;
     sederView.hidden = !seder;
     if (eventsView) eventsView.hidden = !events;
     if (masaotView) masaotView.hidden = !masaot;
+    if (rbView) rbView.hidden = !rb;
     tabs.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
     if (seder) initSeder();
     if (events) initEvents();
     if (masaot) initMasaot();
+    if (rb && window.initRabbis) window.initRabbis();
   }
   tabs.addEventListener('click', e => {
     const t = e.target.closest('.tab');
@@ -1036,6 +1055,7 @@ async function detectInstalledFonts() {
   function currentContext() {
     if (document.body.classList.contains('mode-seder')) return { tab: 'סדר הדורות', entry: '' };
     if (document.body.classList.contains('mode-events')) return { tab: 'לוח אירועים', entry: '' };
+    if (document.body.classList.contains('mode-rb')) return { tab: 'ראשונים ואחרונים', entry: (window.rbCurrentName ? window.rbCurrentName() : '') };
     let entry = '';
     if (curId != null) {
       const e = entryById(curId);

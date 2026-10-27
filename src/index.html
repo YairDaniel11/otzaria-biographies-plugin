@@ -5,41 +5,54 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ביוגרפיות תנאים ואמוראים</title>
 <link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/rabbis.css" />
 </head>
 <body>
 <div class="wrap">
-  <div class="topbar">
-    <div class="tabs" id="tabs">
-      <button class="tab active" type="button" data-tab="bio">ביוגרפיות תנאים ואמוראים</button>
-      <button class="tab" type="button" data-tab="seder">סדר הדורות</button>
-      <button class="tab" type="button" data-tab="events">לוח אירועים</button>
-      <button class="tab" type="button" data-tab="masaot">מסעות במדבר</button>
+  <header class="topbar">
+    <div class="appbar">
+      <div class="brand"><span class="brand-ic" id="brandIc"></span><span class="brand-t">ביוגרפיות</span></div>
+      <div class="searches">
+        <label class="search" id="bioSearch">
+          <span class="ic" id="searchIcon"></span>
+          <input id="q" type="search" placeholder="חיפוש שם או תוכן…" autocomplete="off" />
+          <span id="count"></span>
+          <button class="clearbtn" id="clearBtn" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
+        </label>
+        <label class="search" id="sederSearch">
+          <span class="ic" id="sederSIcon"></span>
+          <input id="sederQ" type="search" placeholder="חיפוש שם, אירוע או תקופה…" autocomplete="off" />
+          <span id="sederCount" class="seder-count"></span>
+          <button class="clearbtn" id="sederClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
+        </label>
+        <label class="search" id="eventsSearch">
+          <span class="ic" id="eventsSIcon"></span>
+          <input id="eventsQ" type="search" placeholder="חיפוש אירוע, מקור או תאריך…" autocomplete="off" />
+          <span id="eventsCount" class="seder-count"></span>
+          <button class="clearbtn" id="eventsClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
+        </label>
+        <label class="search" id="masaotSearch">
+          <span class="ic" id="masaotSIcon"></span>
+          <input id="masaotQ" type="search" placeholder="חיפוש תחנה, פרשה או מקור…" autocomplete="off" />
+          <span id="masaotCount" class="seder-count"></span>
+          <button class="clearbtn" id="masaotClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
+        </label>
+        <label class="search" id="rbSearch">
+          <span class="ic" id="rbSIcon"></span>
+          <input id="rbQ" type="search" placeholder="חיפוש רב, כינוי או ספר…" autocomplete="off" />
+          <span id="rbCount" class="seder-count"></span>
+          <button class="clearbtn" id="rbClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
+        </label>
+      </div>
+      <button class="fontbtn" id="fontBtn" title="גופן וגודל טקסט" aria-label="גופן וגודל טקסט">א<span>א</span></button>
     </div>
-    <label class="search" id="bioSearch">
-      <span class="ic" id="searchIcon"></span>
-      <input id="q" type="search" placeholder="חיפוש שם או תוכן…" autocomplete="off" />
-      <button class="clearbtn" id="clearBtn" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
-    </label>
-    <label class="search" id="sederSearch">
-      <span class="ic" id="sederSIcon"></span>
-      <input id="sederQ" type="search" placeholder="חיפוש שם, אירוע או תקופה…" autocomplete="off" />
-      <button class="clearbtn" id="sederClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
-    </label>
-    <label class="search" id="eventsSearch">
-      <span class="ic" id="eventsSIcon"></span>
-      <input id="eventsQ" type="search" placeholder="חיפוש אירוע, מקור או תאריך…" autocomplete="off" />
-      <button class="clearbtn" id="eventsClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
-    </label>
-    <label class="search" id="masaotSearch">
-      <span class="ic" id="masaotSIcon"></span>
-      <input id="masaotQ" type="search" placeholder="חיפוש תחנה, פרשה או מקור…" autocomplete="off" />
-      <button class="clearbtn" id="masaotClear" type="button" hidden aria-label="נקה חיפוש" title="נקה חיפוש"></button>
-    </label>
-    <span id="count"></span>
-    <span id="sederCount" class="seder-count"></span>
-    <span id="eventsCount" class="seder-count"></span>
-    <span id="masaotCount" class="seder-count"></span>
-    <button class="fontbtn" id="fontBtn" title="גופן וגודל טקסט" aria-label="גופן וגודל טקסט">א<span style="font-size:.7em">א</span></button>
+    <div class="tabs" id="tabs" role="tablist">
+      <button class="tab active" type="button" role="tab" data-tab="bio"><span class="tab-ic" data-ic="person"></span><span>ביוגרפיות תנאים ואמוראים</span></button>
+      <button class="tab" type="button" role="tab" data-tab="seder"><span class="tab-ic" data-ic="timeline"></span><span>סדר הדורות</span></button>
+      <button class="tab" type="button" role="tab" data-tab="events"><span class="tab-ic" data-ic="calendar"></span><span>לוח אירועים</span></button>
+      <button class="tab" type="button" role="tab" data-tab="masaot"><span class="tab-ic" data-ic="route"></span><span>מסעות במדבר</span></button>
+      <button class="tab" type="button" role="tab" data-tab="rb"><span class="tab-ic" data-ic="people"></span><span>ראשונים ואחרונים</span></button>
+    </div>
     <div class="fontpanel" id="fontPanel" hidden>
       <div class="fp-row">
         <label for="fpFamily">גופן</label>
@@ -73,7 +86,7 @@
         <button class="fp-reset" id="fpReset">איפוס לברירת מחדל</button>
       </div>
     </div>
-  </div>
+  </header>
   <nav class="azbar" id="azbar"></nav>
   <div class="main" id="main">
     <section class="pane-list">
@@ -122,6 +135,7 @@
       <div class="seder-wrap" id="masaotApp"></div>
     </div>
   </div>
+  <div class="rb-view" id="rbView" hidden></div>
 </div>
 
 <!-- כפתור צף: דיווח על שגיאה בתוכן (פינה שמאלית-תחתונה) -->
@@ -178,6 +192,8 @@
 <script src="seder-hadorot/seder-list.js"></script>
 <script src="js/icons.js"></script>
 <script src="js/common.js"></script>
+<script src="js/rb-timeline.js"></script>
+<script src="js/rabbis.js"></script>
 <script src="js/app.js"></script>
 </body>
 </html>

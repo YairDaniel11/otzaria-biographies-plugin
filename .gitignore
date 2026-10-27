@@ -1,1 +1,2 @@
 *.otzplugin
+__pycache__/
