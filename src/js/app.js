@@ -385,9 +385,34 @@ clearBtn.addEventListener('click', e => {
  *  בורר גופן וגודל טקסט (העדפת המשתמש, נשמרת מקומית)
  * ========================================================================= */
 const FONT_KEY = 'bio-font-family', SIZE_KEY = 'bio-font-size', HEAD_KEY = 'bio-font-headings';
+/* גודל טקסט נפרד לכל לשונית (מפתח: bio-fs-<tab>) */
+const TAB_NAMES = { bio: 'ביוגרפיות תנאים ואמוראים', seder: 'סדר הדורות', events: 'לוח אירועים', masaot: 'מסעות במדבר', rb: 'ראשונים ואחרונים' };
+const FS_DEFAULT = { bio: 16, seder: 16, events: 16, masaot: 16, rb: 16 };   /* היה 20 בכולן */
+const FS_MIN = 12, FS_MAX = 30;
+let currentTab = 'bio';
+function tabKey(tab) { return 'bio-fs-' + tab; }
+function clampFs(n) { return Math.max(FS_MIN, Math.min(FS_MAX, Math.round(n))); }
 function getUserFont() { try { return localStorage.getItem(FONT_KEY) || ''; } catch (e) { return ''; } }
-function getUserSize() { try { return parseInt(localStorage.getItem(SIZE_KEY), 10) || 0; } catch (e) { return 0; } }
+function getTabSize(tab) {
+  try {
+    const v = parseInt(localStorage.getItem(tabKey(tab)), 10);
+    if (v) return clampFs(v);
+  } catch (e) {}
+  return FS_DEFAULT[tab] || 16;
+}
+function setTabSize(tab, px) { try { localStorage.setItem(tabKey(tab), String(clampFs(px))); } catch (e) {} }
 function getUserHeadings() { try { return localStorage.getItem(HEAD_KEY) === '1'; } catch (e) { return false; } }
+function resetTabSize(tab) { try { localStorage.removeItem(tabKey(tab)); } catch (e) {} }
+/* מיגרציה: העדפת גודל גלובלית ישנה הופכת לערך ההתחלתי של כל לשונית שאין לה ערך משלה, ואז נמחקת */
+(function migrateSize() {
+  try {
+    const old = parseInt(localStorage.getItem(SIZE_KEY), 10);
+    if (old) Object.keys(FS_DEFAULT).forEach(t => {
+      if (localStorage.getItem(tabKey(t)) == null) localStorage.setItem(tabKey(t), String(clampFs(old)));
+    });
+    localStorage.removeItem(SIZE_KEY);
+  } catch (e) {}
+})();
 
 /* בונה ערך font-family תקין משם גופן בודד שהמשתמש הזין:
    שם בודד -> עטיפה במרכאות + נפילה ל-serif; מחרוזת עם פסיקים (stack) -> כמו שהיא. */
@@ -400,25 +425,16 @@ function fontStack(name) {
 
 /* מחיל את העדפות המשתמש על גופן/גודל (גובר על אוצריא).
    הגופן חל תמיד על התוכן (--prayer-font); ועל הכותרות/הממשק (--ui-font)
-   רק אם המשתמש סימן זאת. */
+   רק אם המשתמש סימן זאת. גודל הטקסט (--fs) הוא של הלשונית הפעילה בלבד
+   ומשפיע על התוכן; הסרגלים, הניווט והכפתורים נשארים בגודל קבוע (--fs-ui). */
 function applyUserFontPrefs() {
   const r = document.documentElement;
   const stack = fontStack(getUserFont());
-  const size = getUserSize();
-  const headingsOn = getUserHeadings();
   if (stack) r.style.setProperty('--prayer-font', stack);
   else r.style.removeProperty('--prayer-font');
-  if (stack && headingsOn) r.style.setProperty('--ui-font', stack);
+  if (stack && getUserHeadings()) r.style.setProperty('--ui-font', stack);
   else r.style.removeProperty('--ui-font');
-  if (size) {
-    r.style.setProperty('--fs', size + 'px');
-    // --fs-ui (גודל הכותרות/הממשק) מתעדכן רק אם "החל גם על הכותרות" מסומן
-    if (headingsOn) r.style.setProperty('--fs-ui', size + 'px');
-    else r.style.removeProperty('--fs-ui');
-  } else {
-    r.style.removeProperty('--fs');
-    r.style.removeProperty('--fs-ui');
-  }
+  r.style.setProperty('--fs', getTabSize(currentTab) + 'px');
 }
 
 /* רשימת מועמדים לבדיקת התקנה (כשאין הרשאת queryLocalFonts — כמו בתוך אוצריא) */
@@ -566,18 +582,24 @@ async function detectInstalledFonts() {
     }
   }
 
-  function currentSizePx() {
-    const s = getUserSize();
-    if (s) return s;
-    const v = getComputedStyle(document.documentElement).getPropertyValue('--fs');
-    return parseInt(v, 10) || 18;
-  }
+  const decBtn = document.getElementById('fpSizeDec');
+  const incBtn = document.getElementById('fpSizeInc');
+  const tabName = document.getElementById('fpTabName');
   function syncControls() {
     famInp.value = getUserFont();
     headChk.checked = getUserHeadings();
-    const s = currentSizePx();
+    const s = getTabSize(currentTab);
     sizeInp.value = s;
     sizeVal.textContent = s + 'px';
+    if (tabName) tabName.textContent = TAB_NAMES[currentTab] || '';
+    if (decBtn) decBtn.disabled = s <= FS_MIN;
+    if (incBtn) incBtn.disabled = s >= FS_MAX;
+  }
+  window.syncFontPanel = syncControls;
+  function setSize(px) {
+    setTabSize(currentTab, px);
+    applyUserFontPrefs();
+    syncControls();
   }
 
   btn.addEventListener('click', e => {
@@ -614,19 +636,13 @@ async function detectInstalledFonts() {
     loadBtn.disabled = false;
   });
 
-  sizeInp.addEventListener('input', () => {
-    sizeVal.textContent = sizeInp.value + 'px';
-    try { localStorage.setItem(SIZE_KEY, sizeInp.value); } catch (e) {}
-    applyUserFontPrefs();
-  });
+  sizeInp.addEventListener('input', () => setSize(parseInt(sizeInp.value, 10) || getTabSize(currentTab)));
+  if (decBtn) decBtn.addEventListener('click', () => setSize(getTabSize(currentTab) - 1));
+  if (incBtn) incBtn.addEventListener('click', () => setSize(getTabSize(currentTab) + 1));
+  // איפוס: רק גודל הטקסט של הלשונית הפעילה, לברירת המחדל שלה
   resetBtn.addEventListener('click', () => {
-    try {
-      localStorage.removeItem(FONT_KEY); localStorage.removeItem(SIZE_KEY); localStorage.removeItem(HEAD_KEY);
-    } catch (e) {}
-    // החזרה לברירת המחדל של התוסף (גופן המערכת 20) — הסרת כל ההגדרות האישיות
-    document.documentElement.style.removeProperty('--prayer-font');
-    document.documentElement.style.removeProperty('--ui-font');
-    document.documentElement.style.removeProperty('--fs');
+    resetTabSize(currentTab);
+    applyUserFontPrefs();
     syncControls();
   });
 })();
@@ -651,6 +667,9 @@ async function detectInstalledFonts() {
     const events = (name === 'events');
     const masaot = (name === 'masaot');
     const rb = (name === 'rb');
+    currentTab = TAB_NAMES[name] ? name : 'bio';
+    applyUserFontPrefs();
+    if (window.syncFontPanel) window.syncFontPanel();
     document.body.classList.toggle('mode-seder', seder);
     document.body.classList.toggle('mode-events', events);
     document.body.classList.toggle('mode-masaot', masaot);

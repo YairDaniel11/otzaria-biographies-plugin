@@ -6,6 +6,7 @@
 <title>ביוגרפיות תנאים ואמוראים</title>
 <link rel="stylesheet" href="css/style.css" />
 <link rel="stylesheet" href="css/rabbis.css" />
+<link rel="stylesheet" href="css/rabbis-extra.css" />
 </head>
 <body>
 <div class="wrap">
@@ -73,17 +74,20 @@
         <div class="fp-hint" id="fpFontHint">אפשר להקליד שם של כל גופן שמותקן במחשב, או לבחור מהרשימה.</div>
       </div>
       <div class="fp-row">
-        <label class="fp-check"><input type="checkbox" id="fpHeadings" /> החל גם על הכותרות והממשק</label>
+        <label class="fp-check"><input type="checkbox" id="fpHeadings" /> החל את הגופן גם על הכותרות והממשק</label>
       </div>
       <div class="fp-row">
-        <label for="fpSize">גודל טקסט</label>
+        <label for="fpSize"><span>גודל טקסט</span> – <span id="fpTabName"></span></label>
         <div class="fp-size">
-          <input type="range" id="fpSize" min="14" max="30" step="1" />
-          <span class="fp-val" id="fpSizeVal"></span>
+          <button type="button" class="fp-step" id="fpSizeDec" aria-label="הקטן טקסט" title="הקטן טקסט">&minus;</button>
+          <input type="range" id="fpSize" min="12" max="30" step="1" aria-label="גודל טקסט" />
+          <button type="button" class="fp-step" id="fpSizeInc" aria-label="הגדל טקסט" title="הגדל טקסט">+</button>
+          <span class="fp-val" id="fpSizeVal" aria-live="polite"></span>
         </div>
+        <div class="fp-hint">משפיע על תוכן הלשונית הנוכחית בלבד.</div>
       </div>
       <div class="fp-row">
-        <button class="fp-reset" id="fpReset">איפוס לברירת מחדל</button>
+        <button class="fp-reset" id="fpReset">איפוס גודל הלשונית לברירת מחדל</button>
       </div>
     </div>
   </header>

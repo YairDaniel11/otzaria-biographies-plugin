@@ -181,6 +181,8 @@
   border-bottom:1px solid var(--c-outline-var); font-size:calc(var(--fs-ui) * .62); color:var(--c-on-surface-var)}
 .rb-lh .lh-t{font-weight:600; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
 .rb-lh .lh-n{font-weight:700; color:var(--c-on-secondary-container); background:var(--c-secondary-container); border-radius:var(--r-pill); padding:1px 10px}
+/* תוכן הלשונית (רשימה + כרטיס) — גודל הטקסט של המשתמש; הסרגלים נשארים ב-fs-ui */
+.rb-lp, .rb-dp{font-size:var(--fs)}
 .rb-scroll{flex:1; overflow-y:auto; overflow-x:hidden; scrollbar-width:thin; padding:6px 0}
 .rb-dp{flex:1; min-width:0; overflow-y:auto; background:var(--c-surface); border-radius:var(--r-xl); box-shadow:var(--sh1); scrollbar-width:thin}
 .rb-row{font-size:.92em; animation:rise .25s var(--ease) both}
@@ -211,7 +213,7 @@
 .rb-life .bar i.e1{background:var(--e1)} .rb-life .bar i.e2{background:var(--e2)} .rb-life .bar i.e3{background:var(--e3)}
 .rb-life .bar i.e4{background:var(--e4)} .rb-life .bar i.e5{background:var(--e5)} .rb-life .bar i.e6{background:var(--e6)}
 .rb-life .bar b{position:absolute; top:0; bottom:0; min-width:6px; border-radius:var(--r-pill); background:var(--c-on-surface); box-shadow:0 0 0 2px var(--c-surface)}
-.rb-life .ends{display:flex; justify-content:space-between; font-size:calc(var(--fs-ui) * .5); color:var(--c-on-surface-var); margin-top:3px; direction:rtl}
+.rb-life .ends{display:flex; justify-content:space-between; font-size:calc(var(--fs) * .62); color:var(--c-on-surface-var); margin-top:3px; direction:rtl}
 .rb-facts{margin:0 0 14px; padding:6px 18px; background:var(--c-sc-low); border-radius:var(--r-lg)}
 .rb-f{display:flex; gap:14px; padding:9px 0; font-size:.92em}
 .rb-f + .rb-f{border-top:1px solid var(--c-outline-var)}

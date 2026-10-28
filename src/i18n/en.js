@@ -3,6 +3,11 @@
    נשארת בעברית (נפילה טבעית). */
 window.TRANSLATIONS = window.TRANSLATIONS || {};
 window.TRANSLATIONS["en"] = {
+  "הקטן טקסט": "Decrease text size",
+  "הגדל טקסט": "Increase text size",
+  "משפיע על תוכן הלשונית הנוכחית בלבד.": "Affects only the content of the current tab.",
+  "איפוס גודל הלשונית לברירת מחדל": "Reset tab size to default",
+  "החל את הגופן גם על הכותרות והממשק": "Apply the font also to titles and UI",
   "). נסו שוב.": "). Try again.",
   "אות": "Letter",
   "איפוס לברירת מחדל": "Reset to default",
@@ -193,5 +198,25 @@ window.TRANSLATIONS["en"] = {
   "הרא״ש": "Rosh",
   "ר״ת": "Rabbeinu Tam",
   "הרב עובדיה": "Rav Ovadia",
-  "ללא שנה ידועה": "No known year"
+  "ללא שנה ידועה": "No known year",
+  "בחרו את הספר הנכון": "Choose the right book",
+  "התאמה לפי שם הספר בלבד — ייתכן שמדובר בספר אחר": "Matched by book title only — it may be a different book",
+  "לא נמצא בספריית אוצריא": "Not found in the Otzaria library",
+  "חפש באוצריא": "Search in Otzaria",
+  "ישיבות": "Yeshivot",
+  "בחר ישיבה מהרשימה": "Select a yeshiva from the list",
+  "חיפוש ישיבה, עיר או ראש ישיבה…": "Search yeshiva, city or rosh yeshiva…",
+  "טוען את רשימת הישיבות…": "Loading the yeshivot list…",
+  "שגיאה בטעינת נתוני הישיבות.": "Error loading yeshivot data.",
+  "עיר": "City",
+  "נוסדה": "Founded",
+  "מייסד": "Founder",
+  "ראשי ישיבה": "Roshei yeshiva",
+  "תלמידים בולטים": "Notable students",
+  "פרטים": "Details",
+  "לפנה״ס": "BCE",
+  "תואם את הרב": "Matches this rabbi",
+  "המחבר לפי הספרייה:": "Author per the library:",
+  "בספרייה יש ספר בשם זה של": "The library has a book with this title by",
+  "— ייתכן שאינו הספר שחיפשת": "— it may not be the book you were looking for"
 };

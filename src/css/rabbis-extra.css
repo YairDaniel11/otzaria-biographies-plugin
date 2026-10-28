@@ -1,0 +1,61 @@
+/* ===========================================================================
+ *  rabbis-extra.css — חלונית בחירת ספר + מצב "ישיבות". צבעים רק ממשתני theme.
+ * ========================================================================= */
+
+/* ---- חלונית: בחירת הספר הנכון ---- */
+.rb-dlg-ov{position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center; padding:20px;
+  background:color-mix(in srgb, var(--c-scrim) 36%, transparent); direction:rtl; font-family:var(--ui-font)}
+.rb-dlg{width:100%; max-width:480px; max-height:calc(100vh - 40px); display:flex; flex-direction:column; outline:0;
+  background:var(--c-sc-highest); color:var(--c-on-surface); border-radius:28px; box-shadow:var(--sh3);
+  animation:reportIn .22s var(--ease)}
+.rb-dlg-h{display:flex; align-items:center; gap:10px; padding:20px 24px 8px; flex:0 0 auto}
+.rb-dlg-t{flex:1; min-width:0; font-weight:600; font-size:calc(var(--fs-ui) * .9)}
+.rb-dlg-x{flex:0 0 auto; cursor:pointer; border:0; background:transparent; color:var(--c-on-surface-var); display:inline-flex;
+  width:36px; height:36px; align-items:center; justify-content:center; border-radius:50%; transition:background .12s}
+.rb-dlg-x:hover{background:var(--hover)}
+.rb-dlg-x:focus-visible, .rb-dlg-c:focus-visible{outline:2px solid var(--c-primary); outline-offset:2px}
+.rb-dlg-x svg{display:block}
+.rb-dlg-body{padding:0 24px 6px; overflow-y:auto; min-height:0; scrollbar-width:thin}
+.rb-dlg-q{display:inline-block; max-width:100%; margin:0 0 8px; padding:4px 12px; border-radius:var(--r-pill); overflow-wrap:anywhere;
+  background:var(--c-secondary-container); color:var(--c-on-secondary-container); font-weight:600; font-size:calc(var(--fs-ui) * .7)}
+.rb-dlg-note{font-size:calc(var(--fs-ui) * .6); color:var(--c-on-surface-var); margin:0 0 12px; line-height:1.5}
+.rb-dlg-list{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px}
+.rb-dlg-c{font:inherit; width:100%; cursor:pointer; text-align:start; color:var(--c-on-surface); display:flex; align-items:center; gap:12px;
+  background:var(--c-surface); border:0; box-shadow:inset 0 0 0 1px var(--c-outline-var); border-radius:var(--r-md); padding:10px 14px;
+  transition:background .15s, box-shadow .15s}
+.rb-dlg-c:hover{background:var(--c-secondary-container); box-shadow:none}
+.rb-dlg-ic{flex:0 0 auto; display:inline-flex; color:var(--c-primary)}
+.rb-dlg-ic svg{display:block}
+.rb-dlg-ct{display:flex; flex-direction:column; gap:2px; min-width:0}
+.rb-dlg-bt{font-weight:600; font-size:calc(var(--fs-ui) * .72); overflow-wrap:anywhere}
+.rb-dlg-bp{font-size:calc(var(--fs-ui) * .56); color:var(--c-on-surface-var); overflow-wrap:anywhere}
+.rb-dlg-f{display:flex; justify-content:flex-end; padding:14px 24px 20px; flex:0 0 auto}
+@media(max-width:720px){
+  .rb-dlg-ov{padding:12px; align-items:flex-end}
+  .rb-dlg{max-height:calc(100vh - 24px); border-radius:24px}
+  .rb-dlg-h{padding:16px 18px 6px}
+  .rb-dlg-body{padding:0 18px 4px}
+  .rb-dlg-f{padding:12px 18px 16px}
+}
+@media (prefers-reduced-motion:reduce){.rb-dlg{animation:none}}
+
+/* ---- מצב ישיבות ---- */
+.rb-m-ys .rb-bio, .rb-m-ys .rb-prog{display:none}
+.rb-ysf{flex:0 0 auto; font-size:.72em; font-weight:500; color:var(--c-on-surface-var); white-space:nowrap}
+.row.active .rb-ysf{color:inherit; opacity:.8}
+.rb-ul{margin:0; padding:0 20px 0 0; display:flex; flex-direction:column; gap:6px; line-height:1.6}
+.rb-ul li::marker{color:var(--c-primary)}
+@media(max-width:720px){
+  .rb-seg .rb-mode{padding:0 10px; gap:4px}
+}
+
+/* ---- חלונית בחירה: מחבר והתאמה לרב ---- */
+.rb-dlg-warn{margin:0 0 8px; padding:8px 12px; border-radius:var(--r-md); line-height:1.5; font-size:calc(var(--fs-ui) * .62);
+  background:var(--c-error-container); color:var(--c-on-error-container)}
+.rb-dlg-warn bdi{font-weight:700}
+.rb-dlg-au{font-size:calc(var(--fs-ui) * .56); color:var(--c-on-surface-var); overflow-wrap:anywhere}
+.rb-dlg-au bdi{font-weight:600}
+.rb-dlg-badge{display:inline-block; padding:0 8px; margin-inline-end:4px; border-radius:var(--r-pill); font-weight:700;
+  background:var(--c-primary-container); color:var(--c-on-primary-container)}
+.rb-dlg-c.is-match{box-shadow:inset 0 0 0 2px var(--c-primary)}
+.rb-dlg-c.is-match:hover{box-shadow:inset 0 0 0 2px var(--c-primary)}

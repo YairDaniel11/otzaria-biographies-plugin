@@ -239,6 +239,7 @@
   function deathK(r) { var d = r.a[4]; return d > 0 ? d : (r.a[3] > 0 ? r.a[3] + 60 : 1e9); }
 
   function compute() {
+    if (S.mode === 'ys') { computeYs(); return; }
     if (!ready) return;
     lastRun = Date.now();
     var Q = parseQ(S.q), n = Q.t.length, yz = S.mode === 'yz', x, r, t;
@@ -347,6 +348,7 @@
       '<button type="button" class="rb-note-x" aria-label="נקה סינון" title="נקה סינון">' + ic('dismiss', 14) + '</button>';
   }
   function renderMeta() {
+    if (S.mode === 'ys') return;
     var n = res.length, custom = S.per === 'custom', yz = S.mode === 'yz';
     el.count.textContent = n.toLocaleString('he') + ' רבנים';
     // חיווי הטווח: בכותרת הציר (פתוח) או בשורת note (מוסתר) — תמיד נראה כשיש סינון פעיל
@@ -383,7 +385,7 @@
 
   /* הצגה/הסתרה של אזור הציר (עם שמירה ב-localStorage) */
   function syncChrome(animate) {
-    var yz = S.mode === 'yz';
+    var yz = S.mode === 'yz' || S.mode === 'ys';     // במצבים אלה הציר/צ'יפים/מיון אינם רלוונטיים
     el.tlBox.classList.toggle('off', tlOff || yz);
     el.tlBox.hidden = false;
     if (animate) {
@@ -488,7 +490,8 @@
     if (rec.s) markSources(rec.s.split('; '));
   }
 
-  /* מקור (ספר עיון) שקיים בספריית אוצריא הופך ללחיץ; השאר נשארים טקסט. הבדיקה אסינכרונית ולא חוסמת. */
+  /* מקור (ספר עיון) שיש לו מועמדים בספריית אוצריא הופך ללחיץ; השאר נשארים טקסט. הבדיקה אסינכרונית ולא חוסמת.
+     הלחיצה לא פותחת "בעיוורון": היא עוברת באותו מסלול של ספרי הרב (openBookByTitle) ועלולה להציג חלונית בחירה. */
   var srcTok = 0;
   function srcTitle(t) {
     return cleanTitle(String(t).replace(/\s+\d[\d\s,\-–]*$/, '').replace(/\s+ח["״']?[א-ת]{1,2}(\s.*)?$/, ''));
@@ -497,10 +500,11 @@
     var tok = ++srcTok, O = window.Otzaria;
     if (!O || !O.call) return;
     list.slice(0, 12).forEach(function (t, i) {
-      findBookByTitle(srcTitle(t)).then(function (b) {
-        if (tok !== srcTok || !b) return;
+      var st = srcTitle(t);
+      searchCands(st).then(function (c) {
+        if (tok !== srcTok || !c.length) return;
         var n = el.dc.querySelector('.rb-srcitem[data-i="' + i + '"]');
-        if (n) { n.classList.add('ok'); n.title = 'פתח באוצריא: ' + b.title; n.dataset.id = b.bookId; }
+        if (n) { n.classList.add('ok'); n.title = 'חפש באוצריא'; n.dataset.t = st; }
       });
     });
   }
@@ -512,43 +516,343 @@
     t = t.split(/\s+[-–—]+\s+|\s*[(\[{]|\s+["״“]/)[0];
     return t.replace(/[\s,.;:\-–—]+$/, '').trim();
   }
-  /* מחזיר את הספר המתאים ביותר בספריית אוצריא לפי כותר, או null */
-  async function findBookByTitle(title) {
-    var O = window.Otzaria;
-    if (!O || !O.call) return null;
-    var q = cleanTitle(title);
-    if (!q) return null;
-    var cands = [q];
-    var q2 = q.replace(/["'׳״]/g, '');
-    if (q2 && q2 !== q) cands.push(q2);
-    try {
-      for (var c = 0; c < cands.length; c++) {
-        var r = await O.call('library.findBooks', { query: cands[c], limit: 12 });
-        var books = (r && r.success && r.data) ? r.data : [];
-        var nq = nrmT(cands[c]), best = null, bs = 0;
+  var MAXC = 8;
+  /* זהות ספר לקריאות API: עדיפות ל-bookUid (חד-משמעי), אחר כך id, ולבסוף bookId (שם) */
+  function bookIdent(b) {
+    if (b.bookUid) return { bookUid: b.bookUid };
+    if (b.id != null) return { id: b.id };
+    return { bookId: b.bookId };
+  }
+  function bookKey(b) { return b.bookUid || (b.id != null ? 'id:' + b.id : 'b:' + b.bookId); }
+  var candCache = {};
+  /* אוסף עד MAXC מועמדים ייחודיים לפי כמה נוסחי כותר (בלי נתיב קטגוריה), ממוינים לפי איכות ההתאמה */
+  function searchCands(title) {
+    var O = window.Otzaria, q = cleanTitle(title);
+    if (!O || !O.call || !q) return Promise.resolve([]);
+    if (candCache[q]) return candCache[q];
+    var forms = [q], q2 = q.replace(/["'׳״]/g, '');
+    if (q2 && q2 !== q) forms.push(q2);
+    candCache[q] = (async function () {
+      var seen = {}, out = [], nq = nrmT(q);
+      for (var c = 0; c < forms.length; c++) {
+        var books = [];
+        try {
+          var r = await O.call('library.findBooks', { query: forms[c], limit: 12 });
+          books = (r && r.success && Array.isArray(r.data)) ? r.data : [];
+        } catch (e) { /* שקט */ }
         books.forEach(function (b) {
+          if (!b || b.title == null) return;
+          var k = bookKey(b);
+          if (seen[k]) return;
           var nt = nrmT(b.title), s = 0;
           if (nt === nq) s = 100;
           else if (nt.indexOf(nq) === 0) s = 60;
           else if (nt.indexOf(nq) >= 0) s = 40;
           else if (nt.length >= 4 && nq.indexOf(nt) >= 0) s = 30;
-          if (s > bs) { bs = s; best = b; }
+          if (!s) return;
+          seen[k] = 1;
+          out.push({ b: b, s: s, exact: s === 100, title: String(b.title), categoryPath: b.categoryPath || '' });
         });
-        if (best) return best;
       }
-    } catch (e) { /* שקט */ }
-    return null;
+      out.sort(function (a, b) { return b.s - a.s; });
+      return out.slice(0, MAXC);
+    })();
+    return candCache[q];
   }
-  async function openBookByTitle(title) {
+  /* משלים נתיב קטגוריה לכל מועמד (getBookMetadata, במקביל מוגבל) */
+  async function addPaths(cands) {
+    var O = window.Otzaria, i = 0;
+    async function worker() {
+      while (i < cands.length) {
+        var c = cands[i++];
+        if (c.categoryPath) continue;
+        try {
+          var r = await O.call('library.getBookMetadata', bookIdent(c.b));
+          if (r && r.success && r.data) c.categoryPath = r.data.categoryPath || '';
+        } catch (e) { /* בלי נתיב */ }
+      }
+    }
+    await Promise.all([worker(), worker(), worker()]);
+    return cands;
+  }
+  function pathText(p) { return String(p || '').replace(/^[\/\\]+/, '').split(/[\/\\]+/).filter(Boolean).join(' › '); }
+  function doOpen(c) {
+    var O = window.Otzaria, p = bookIdent(c.b);
+    p.index = 0;
+    return O.call('reader.openBook', p).catch(function () { /* שקט */ });
+  }
+
+  /* ----- חלונית: בחירת הספר הנכון / לא נמצא ----- */
+  var dlg = null;
+  function closeDlg() {
+    if (!dlg) return;
+    var d = dlg; dlg = null;
+    document.removeEventListener('keydown', d.key, true);
+    d.ov.remove();
+    if (d.prev && d.prev.focus && document.contains(d.prev)) { try { d.prev.focus(); } catch (e) { /* ללא */ } }
+  }
+  function showDlg(titleTxt, bodyHtml, onWire) {
+    closeDlg();
+    var ov = document.createElement('div');
+    ov.className = 'rb-dlg-ov';
+    ov.innerHTML = '<div class="rb-dlg" role="dialog" aria-modal="true" aria-labelledby="rbDlgT" tabindex="-1">' +
+      '<div class="rb-dlg-h"><div class="rb-dlg-t" id="rbDlgT"></div>' +
+      '<button type="button" class="rb-dlg-x" aria-label="סגור" title="סגור">' + ic('dismiss', 18) + '</button></div>' +
+      bodyHtml + '</div>';
+    ov.querySelector('.rb-dlg-t').textContent = titleTxt;
+    if (window.I18n && I18n.t) ov.querySelector('.rb-dlg-t').textContent = I18n.t(titleTxt);
+    var box = ov.querySelector('.rb-dlg');
+    var d = { ov: ov, prev: document.activeElement };
+    d.key = function (e) {
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeDlg(); return; }
+      if (e.key === 'Tab') {                         // לכידת פוקוס בתוך החלונית
+        var f = [].slice.call(box.querySelectorAll('button:not([disabled])'));
+        if (!f.length) return;
+        var i = f.indexOf(document.activeElement);
+        if (e.shiftKey && i <= 0) { e.preventDefault(); f[f.length - 1].focus(); }
+        else if (!e.shiftKey && (i === f.length - 1 || i < 0)) { e.preventDefault(); f[0].focus(); }
+      }
+    };
+    document.addEventListener('keydown', d.key, true);
+    ov.addEventListener('mousedown', function (e) { if (e.target === ov) closeDlg(); });
+    ov.querySelector('.rb-dlg-x').addEventListener('click', closeDlg);
+    document.body.appendChild(ov);
+    dlg = d;
+    if (onWire) onWire(ov, box);
+    var first = box.querySelector('.rb-dlg-c') || box.querySelector('.rb-dlg-x');
+    if (first) first.focus();
+  }
+  function showNotFound(title) {
+    showDlg('לא נמצא בספריית אוצריא',
+      '<div class="rb-dlg-body"><div class="rb-dlg-q" data-i18n-skip></div></div>' +
+      '<div class="rb-dlg-f"><button type="button" class="navbtn rb-dlg-cancel">סגור</button></div>',
+      function (ov) {
+        ov.querySelector('.rb-dlg-q').textContent = title;
+        ov.querySelector('.rb-dlg-cancel').addEventListener('click', closeDlg);
+      });
+  }
+  /* ----- מחברים: data/lib-authors.js (כותר מנורמל -> מחברים), נטען עצלנית; כשל = ממשיכים בלי נתוני מחבר ----- */
+  function libKey(t) { return String(t || '').replace(/[^א-ת]/g, ''); }
+  var authP = null;
+  function loadAuthors() {
+    if (window.LIB_AUTHORS) return Promise.resolve(window.LIB_AUTHORS);
+    if (!authP) authP = loadScript('data/lib-authors.js').then(function () { authP = null; return window.LIB_AUTHORS || {}; }).catch(function () { authP = null; return {}; });   // מטמון רק בזמן טעינה; אחריה הנתונים ב-window
+    return authP;
+  }
+  var NT = { 'ר': 1, 'רבי': 1, 'הרב': 1, 'רבינו': 1, 'רבנו': 1, 'מהר': 1, 'מוהר': 1, 'הגאון': 1, 'הצדיק': 1 };
+  function tokSplit(s) {            // טוקני שם: בלי תארים, בלי "בן/בר + שם אב", וילנא=וילנה
+    var t = nrm(s).split(' ').filter(Boolean), out = [];
+    for (var i = 0; i < t.length; i++) {
+      var w = t[i];
+      if (w === 'בן' || w === 'בר') { i++; continue; }
+      if (NT[w]) continue;
+      out.push(w === 'וילנא' ? 'וילנה' : w);
+    }
+    return out;
+  }
+  function brackets(s) {
+    var out = [], re = /[\[(]([^\])]+)[\])]/g, m;
+    while ((m = re.exec(String(s || '')))) out.push(m[1]);
+    return out;
+  }
+  function stripBr(s) { return String(s || '').replace(/[\[(][^\])]*[\])]/g, ' '); }
+  function aliasKey(s) { return nrm(s).replace(/\s/g, ''); }
+  /* האם אחד המחברים תואם לרב {name, k}: לפחות שני טוקנים משותפים (או טוקן יחיד כשהשם כולו טוקן אחד), או כינוי זהה */
+  function rabbiProfile(r) {
+    var parts = String(r.name || '').split(/\s+[-–—]\s+/), al = {}, toks = {};
+    brackets(r.name).forEach(function (b) { al[aliasKey(b)] = 1; });
+    String(r.k || '').split(',').forEach(function (k) { if (k.trim()) al[aliasKey(k)] = 1; });
+    if (parts.length > 1) al[aliasKey(parts[parts.length - 1])] = 1;
+    tokSplit(stripBr(r.name)).forEach(function (w) { toks[w] = 1; });
+    delete al[''];
+    return { al: al, toks: toks, n: Object.keys(toks).length };
+  }
+  function authorMatches(authors, r) {
+    var P = rabbiProfile(r);
+    return authors.some(function (a) {
+      var forms = [{ t: tokSplit(stripBr(a)), whole: aliasKey(stripBr(a)) }];
+      brackets(a).forEach(function (b) { forms.push({ t: tokSplit(b), whole: aliasKey(b) }); });
+      return forms.some(function (f) {
+        if (!f.t.length) return false;
+        if (f.whole && P.al[f.whole]) return true;
+        var common = f.t.filter(function (w) { return P.toks[w]; }).length;
+        return common >= 2 || (common >= 1 && (f.t.length === 1 || P.n === 1));
+      });
+    });
+  }
+  function rabbiCtx() {
+    if (!ready || S.cur < 0 || !R[S.cur]) return null;
+    return { name: R[S.cur].a[1], k: R[S.cur].a[2] };
+  }
+  function authText(a) { return a.slice(0, 2).join(', '); }
+
+  function showChooser(title, cands) {
+    var anyMatch = cands.some(function (c) { return c.match === true; });
+    var bad = cands.filter(function (c) { return c.match === false; })[0];
+    var rows = cands.map(function (c, i) {
+      var au = '';
+      if (c.match === true) au = '<small class="rb-dlg-au ok"><span class="rb-dlg-badge">תואם את הרב</span> <bdi data-i18n-skip></bdi></small>';
+      else if (c.match === false) au = '<small class="rb-dlg-au"><span>המחבר לפי הספרייה:</span> <bdi data-i18n-skip></bdi></small>';
+      else if (c.authors.length) au = '<small class="rb-dlg-au"><bdi data-i18n-skip></bdi></small>';
+      return '<li><button type="button" class="rb-dlg-c' + (c.match === true ? ' is-match' : '') + '" data-i="' + i + '">' +
+        '<span class="rb-dlg-ic">' + ic('book', 18) + '</span>' +
+        '<span class="rb-dlg-ct"><span class="rb-dlg-bt" data-i18n-skip></span>' +
+        (pathText(c.categoryPath) ? '<small class="rb-dlg-bp" data-i18n-skip></small>' : '') + au + '</span></button></li>';
+    }).join('');
+    var warn = (!anyMatch && bad)
+      ? '<div class="rb-dlg-warn"><span>בספרייה יש ספר בשם זה של</span> <bdi data-i18n-skip></bdi> <span>— ייתכן שאינו הספר שחיפשת</span></div>' : '';
+    showDlg('בחרו את הספר הנכון',
+      '<div class="rb-dlg-body"><div class="rb-dlg-q" data-i18n-skip></div>' + warn +
+      '<div class="rb-dlg-note">התאמה לפי שם הספר בלבד — ייתכן שמדובר בספר אחר</div>' +
+      '<ul class="rb-dlg-list">' + rows + '</ul></div>' +
+      '<div class="rb-dlg-f"><button type="button" class="navbtn rb-dlg-cancel">ביטול</button></div>',
+      function (ov) {
+        ov.querySelector('.rb-dlg-q').textContent = title;
+        var wb = ov.querySelector('.rb-dlg-warn bdi');
+        if (wb && bad) wb.textContent = authText(bad.authors);
+        ov.querySelectorAll('.rb-dlg-c').forEach(function (btn, i) {
+          btn.querySelector('.rb-dlg-bt').textContent = cands[i].title;
+          var bp = btn.querySelector('.rb-dlg-bp');
+          if (bp) bp.textContent = pathText(cands[i].categoryPath);
+          var ab = btn.querySelector('.rb-dlg-au bdi');
+          if (ab) ab.textContent = authText(cands[i].authors);
+          btn.addEventListener('click', function () { var c = cands[i]; closeDlg(); doOpen(c); });
+        });
+        ov.querySelector('.rb-dlg-cancel').addEventListener('click', closeDlg);
+      });
+  }
+
+  /* פתיחת ספר לפי כותר. ישיר רק כשיש מועמד יחיד בכותר זהה שאין לגביו סתירת מחבר (תואם לרב, או שאין מידע מחבר);
+     כמה מועמדים: ישיר רק אם בדיוק אחד תואם גם בכותר וגם במחבר. אחרת חלונית (מסודרת: מחבר תואם, לא ידוע, מחבר שונה); אין — הודעה */
+  async function openBookByTitle(title, ctx) {
     var O = window.Otzaria;
     if (!O || !O.call) return;
-    var best = await findBookByTitle(title);
-    try {
-      if (best) await O.call('reader.openBook', { bookId: best.bookId, index: 0 });
-      else await O.call('ui.showMessage', { message: 'לא נמצא באוצריא: ' + title });
-    } catch (e) { /* שקט */ }
+    ctx = ctx || rabbiCtx();
+    var found = await searchCands(title);
+    if (!found.length) { showNotFound(cleanTitle(title) || String(title)); return; }
+    var A = await loadAuthors();
+    var cands = found.map(function (c) {
+      var n = {};
+      for (var k in c) n[k] = c[k];
+      var au = A[libKey(c.title)];
+      n.authors = Array.isArray(au) ? au.filter(Boolean) : (au ? [String(au)] : []);
+      n.match = (n.authors.length && ctx) ? authorMatches(n.authors, ctx) : null;
+      n.rank = n.match === true ? 0 : (n.match === false ? 2 : 1);
+      return n;
+    });
+    cands.sort(function (a, b) { return (a.rank - b.rank) || (b.s - a.s); });
+    if (cands.length === 1 && cands[0].exact && cands[0].match !== false) { await doOpen(cands[0]); return; }
+    var good = cands.filter(function (c) { return c.exact && c.match === true; });
+    if (cands.length > 1 && good.length === 1) { await doOpen(good[0]); return; }
+    await addPaths(cands);
+    showChooser(cleanTitle(title) || String(title), cands);
   }
   window.rbOpenBookByTitle = openBookByTitle;
+
+  /* ----- מצב "ישיבות": רשימת ישיבות (data/yeshivot.js, נטען עצלנית) + כרטיס ישיבה ----- */
+  var YS = [], YSN = [], ysCur = -1, ysState = '', ysRes = [];
+  var GV = { 'א': 1, 'ב': 2, 'ג': 3, 'ד': 4, 'ה': 5, 'ו': 6, 'ז': 7, 'ח': 8, 'ט': 9, 'י': 10, 'כ': 20, 'ך': 20, 'ל': 30, 'מ': 40, 'ם': 40,
+    'נ': 50, 'ן': 50, 'ס': 60, 'ע': 70, 'פ': 80, 'ף': 80, 'צ': 90, 'ץ': 90, 'ק': 100, 'ר': 200, 'ש': 300, 'ת': 400 };
+  function gv(s) { var n = 0; for (var i = 0; i < s.length; i++) { var v = GV[s.charAt(i)]; if (!v) return -1; n += v; } return n; }
+  /* תאריך עברי גימטרי ("תקס״ג", "ג׳תתקפ״ה") -> שנה לועזית משוערת (עברית פחות 3760); null אם לא ניתן לפענוח */
+  function hebToGreg(t) {
+    var s = String(t || '').trim().replace(/\s+/g, '');
+    var m = /^([א-ט])[׳']([א-ת"״׳']+)$/.exec(s), th = 0, rest = s;
+    if (m) { th = GV[m[1]]; rest = m[2]; }
+    rest = rest.replace(/["״׳']/g, '');
+    if (!rest || rest.length > 6) return null;
+    var v = gv(rest);
+    if (v <= 0 || v >= 1000) return null;
+    var heb = th ? th * 1000 + v : 5000 + v;
+    var g = heb - 3760;
+    return (g > -1500 && g < 2200) ? g : null;
+  }
+  function ysFounded(f) {
+    if (!f) return '';
+    var s = String(f), g = hebToGreg(s);
+    return g == null ? s : s + ' (' + (g < 0 ? (-g) + ' לפנה״ס' : g) + ')';
+  }
+  function ysItems(v) {
+    if (v == null || v === '') return [];
+    var a = Array.isArray(v) ? v : String(v).split(/\s*[;\n]\s*/);
+    return a.map(function (x) { return String(x == null ? '' : x).trim(); }).filter(Boolean);
+  }
+  function ysText(v) { return Array.isArray(v) ? v.join(' · ') : String(v == null ? '' : v); }
+  function ensureYs() {
+    if (window.YESHIVOT && window.YESHIVOT.length) { ysReady(); return; }
+    if (ysState === 'load') return;
+    ysState = 'load';
+    setStatus('טוען את רשימת הישיבות…', false, 'load');
+    loadScript('data/yeshivot.js').then(function () {
+      if (!window.YESHIVOT || !window.YESHIVOT.length) throw new Error('empty');
+      ysReady();
+    }).catch(function () {
+      ysState = '';
+      if (S.mode !== 'ys') return;
+      el.list.innerHTML = '';
+      setStatus('<div>שגיאה בטעינת נתוני הישיבות.</div><button type="button" class="navbtn" id="rbYsReload">נסה שוב</button>', true, 'err');
+      el.count.textContent = '';
+    });
+  }
+  function ysReady() {
+    ysState = 'ok';
+    YS = window.YESHIVOT || [];
+    YSN = YS.map(function (y) {
+      return nrm([y.name, y.city, y.founder, ysText(y.roshei), ysText(y.students), ysText(y.details)].join(' '));
+    });
+    if (S.mode === 'ys') compute();
+  }
+  function ysRow(i, first) {
+    var y = YS[i], f = y.founded ? ysFounded(y.founded) : '';
+    return '<div class="row rb-row rb-yrow' + (i === ysCur ? ' active' : '') + '" data-y="' + i + '" role="button" tabindex="' + (first ? 0 : -1) + '">' +
+      '<span class="nm">' + h(y.name) + (y.city ? ' <small class="rb-k">' + h(y.city) + '</small>' : '') + '</span>' +
+      (f ? '<span class="rb-ysf">' + h(f) + '</span>' : '') + '</div>';
+  }
+  function computeYs() {
+    if (ysState !== 'ok') { if (ysState !== 'load') ensureYs(); return; }
+    var Q = parseQ(S.q);
+    ysRes = [];
+    for (var i = 0; i < YS.length; i++) if (!Q.t.length || hasAll(YSN[i], Q.t)) ysRes.push(i);
+    el.list.innerHTML = '';
+    el.scroll.scrollTop = 0;
+    shown = 1e9;                                     // כל הרשימה מרונדרת בבת אחת (כ-26 שורות)
+    var n = ysRes.length;
+    el.count.textContent = n.toLocaleString('he') + ' ישיבות';
+    el.read.hidden = true; el.note.hidden = true; el.tlTitleHint.hidden = true;
+    el.lh.innerHTML = '<span class="lh-t">ישיבות</span><span class="lh-n">' + n.toLocaleString('he') + '</span>';
+    if (!n) {
+      var act = S.q ? '<button type="button" class="navbtn rb-reset">' + ic('reset', 16) + '<span>נקה סינונים</span></button>' : '';
+      setStatus('<div>לא נמצאו תוצאות</div>' + act, true, 'empty');
+      return;
+    }
+    setStatus('');
+    el.list.innerHTML = ysRes.map(function (i, k) { return ysRow(i, k === 0); }).join('');
+  }
+  function openYs(i) {
+    if (!YS[i]) return;
+    ysCur = i;
+    el.body.querySelectorAll('.rb-row.active').forEach(function (r) { r.classList.remove('active'); });
+    var row = el.list.querySelector('.rb-yrow[data-y="' + i + '"]');
+    if (row) row.classList.add('active');
+    view.classList.add('show-detail');
+    el.dp.scrollTop = 0;
+    var y = YS[i];
+    var sub = [y.city ? h(y.city) : '', y.founded ? 'נוסדה ' + h(ysFounded(y.founded)) : ''].filter(Boolean).join(' · ');
+    var facts = fact('עיר', h(y.city)) + fact('נוסדה', h(ysFounded(y.founded))) + fact('מייסד', h(ysText(y.founder)));
+    function list(title, v) {
+      var it = ysItems(v);
+      if (!it.length) return '';
+      return '<h3 class="rb-h">' + title + '</h3><ul class="rb-ul">' + it.map(function (x) { return '<li>' + h(x) + '</li>'; }).join('') + '</ul>';
+    }
+    var det = ysText(y.details).trim();
+    el.dc.innerHTML =
+      '<div class="detail-head"><span class="detail-ic">' + ic('book', 26) + '</span>' +
+      '<div class="detail-head-t"><h2 class="detail-name">' + h(y.name) + '</h2>' +
+      (sub ? '<div class="detail-sub">' + sub + '</div>' : '') + '</div></div>' +
+      (facts ? '<div class="rb-facts">' + facts + '</div>' : '') +
+      list('ראשי ישיבה', y.roshei) + list('תלמידים בולטים', y.students) +
+      (det ? '<h3 class="rb-h">פרטים</h3><div class="body rb-bio-t">' + h(det) + '</div>' : '');
+  }
 
   /* ----- חיפוש בטקסט הביוגרפיה: טעינה הדרגתית של כל הקבצים ----- */
   var bioRun = false;
@@ -587,11 +891,21 @@
     el.modes.querySelectorAll('.rb-mode').forEach(function (b) {
       var on = b.dataset.m === m; b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
     });
-    view.classList.remove('rb-m-list', 'rb-m-yz');
+    var wasYs = view.classList.contains('rb-m-ys');
+    view.classList.remove('rb-m-list', 'rb-m-yz', 'rb-m-ys');
     view.classList.add('rb-m-' + m);
     el.yz.hidden = m !== 'yz';
-    el.sortw.hidden = m === 'yz';
+    el.sortw.hidden = m === 'yz' || m === 'ys';
+    if ((m === 'ys') !== wasYs) {                    // מעבר לתוך/מתוך ישיבות: כרטיס ופלייסהולדר נקיים, ושינוי הצעת החיפוש
+      openTok++; S.cur = -1; curBooks = []; ysCur = -1;
+      view.classList.remove('show-detail');
+      el.dc.innerHTML = '<div class="placeholder"><span class="big">' + ic('people', 44) + '</span><div>' +
+        (m === 'ys' ? 'בחר ישיבה מהרשימה' : 'בחר רב מהרשימה') + '</div></div>';
+      var ph = m === 'ys' ? 'חיפוש ישיבה, עיר או ראש ישיבה…' : 'חיפוש רב, כינוי או ספר…';
+      el.q.placeholder = (window.I18n && I18n.t) ? I18n.t(ph) : ph;
+    }
     if (m === 'yz') setToday();
+    if (m === 'ys') ensureYs();
     syncChrome(false);
     compute();
   }
@@ -628,6 +942,7 @@
         '<div class="rb-seg" id="rbModes" role="tablist">' +
           '<button type="button" class="rb-mode on" role="tab" aria-selected="true" data-m="list"><span class="ck">' + ic('check', 16) + '</span><span class="mi">' + ic('list', 18) + '</span><span>רשימה</span></button>' +
           '<button type="button" class="rb-mode" role="tab" aria-selected="false" data-m="yz"><span class="ck">' + ic('check', 16) + '</span><span class="mi">' + ic('calendar', 18) + '</span><span>יארצייט היום</span></button>' +
+          '<button type="button" class="rb-mode" role="tab" aria-selected="false" data-m="ys"><span class="ck">' + ic('check', 16) + '</span><span class="mi">' + ic('book', 18) + '</span><span>ישיבות</span></button>' +
         '</div>' +
         '<button type="button" class="rb-tlbtn" id="rbTlBtn" aria-controls="rbTlBox" aria-expanded="true"><span class="ti">' + ic('chart', 18) + '</span><span class="tt">הסתר ציר</span><span class="tc">' + ic('chevron_up', 16) + '</span></button>' +
       '<div class="rb-chips" id="rbChips" role="group" aria-label="סינון לפי תקופה" hidden>' + PERS.map(function (p) {
@@ -715,8 +1030,10 @@
     view.addEventListener('click', function (e) {
       var t = e.target;
       var c;
+      if ((c = t.closest('.rb-yrow'))) { openYs(+c.dataset.y); return; }
+      if (t.closest('#rbYsReload')) { ysState = ''; ensureYs(); return; }
       if ((c = t.closest('.rb-row'))) { openCard(+c.dataset.x); return; }
-      if ((c = t.closest('.rb-srcitem.ok'))) { var O = window.Otzaria; if (O && O.call) O.call('reader.openBook', { bookId: c.dataset.id, index: 0 }); return; }
+      if ((c = t.closest('.rb-srcitem.ok'))) { openBookByTitle(c.dataset.t); return; }
       if ((c = t.closest('.rb-book'))) { var b = curBooks[+c.dataset.k]; if (b) openBookByTitle(b[0]); return; }
       if (t.closest('#rbTlBtn')) { setTlOff(!tlOff, true); return; }
       if ((c = t.closest('.rb-mode'))) { setMode(c.dataset.m); return; }
@@ -750,7 +1067,7 @@
     view.addEventListener('keydown', function (e) {
       var t = e.target, row = t.closest && t.closest('.rb-row');
       if (row) {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openCard(+row.dataset.x); return; }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); if (row.classList.contains('rb-yrow')) openYs(+row.dataset.y); else openCard(+row.dataset.x); return; }
         if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
           e.preventDefault();
           var n = e.key === 'ArrowDown' ? row.nextElementSibling : row.previousElementSibling;
@@ -809,6 +1126,7 @@
   }
 
   window.rbCurrentName = function () {
+    if (S.mode === 'ys') return (ysCur >= 0 && YS[ysCur]) ? String(YS[ysCur].name || '') : '';
     return (ready && S.cur >= 0 && R[S.cur]) ? R[S.cur].a[1] : '';
   };
 
