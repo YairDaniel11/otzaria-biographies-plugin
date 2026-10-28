@@ -10,7 +10,8 @@
 
   var BASE = 'data/rabbis/';
   var PAGE = 150;                 // שורות לכל מנת רינדור
-  var TITLES = ['ר', 'רבי', 'הרב'];   // תארים שמתעלמים מהם בחיפוש
+  var TITLES = ['ר', 'רבי', 'הרב', 'רבנו', 'מהרר', 'מוהרר', 'הקדוש', 'הגאון', 'הצדיק'];   // תארים שמתעלמים מהם בחיפוש (רבינו מקופל ל-רבנו)
+  var ALIASES = { 'מרן': ['יוסף קארו', 'קארו יוסף', 'בית יוסף'] };   // מילת חיפוש -> שמות חלופיים (מתאימים לשם/כינוי בלבד; מנורמל ב-nrmS למטה)
   var MON = ['תשרי', 'חשון', 'כסלו', 'טבת', 'שבט', 'אדר', 'ניסן', 'אייר', 'סיון', 'תמוז', 'אב', 'אלול', 'אדר א', 'אדר ב'];  // כמו RB_MONTHS (זמין לפני טעינת האינדקס)
   var EN_MONTHS = {               // שמות חודשים (Intl באנגלית) -> אינדקס ב-RB_MONTHS
     'Tishri': 0, 'Tishrei': 0, 'Heshvan': 1, 'Cheshvan': 1, 'Marcheshvan': 1, 'Kislev': 2,
@@ -44,7 +45,8 @@
   var F0 = 750, F1 = 2030;        // תחום ציר הדורות המלא (שנים)
 
   var inited = false, ready = false;
-  var R = [];               // רשומות מעובדות: {a:שורת-אינדקס, nn, na, nk, nb, key, e}
+  var R = [];               // רשומות מעובדות: {a:שורת-אינדקס, nn1, na1, ex, exs, k0, k1, sk, nb, key, e}
+  var curQ = null;          // השאילתה המנותחת האחרונה (לחיווי "נמצא לפי")
   var idToX = new Map();    // id -> אינדקס ב-R
   var nameToX = new Map();  // שם רשומה -> אינדקס ב-R (לציוני דרך)
   var bioN = [];            // טקסט ביוגרפיה מנורמל (לפי אינדקס ב-R), נבנה כשקובץ נטען
@@ -74,6 +76,40 @@
       .replace(/[\-־–—_\/\\,;:.()\[\]{}]/g, ' ')
       .replace(/["'׳״`’‘“”!?*]/g, '')
       .replace(/\s+/g, ' ').trim();
+  }
+  /* נרמול לחיפוש (שאילתה ומפתח): בנוסף ל-nrm — תווי כיווניות, ו"ו/יו"ד כפולות, רבינו=רבנו */
+  var FIN = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };   // אותיות סופיות מאוחדות רק בשלד הכתיב (ריף≠ריפ בהתאמה מדויקת)
+  function nrmS(s) {
+    s = String(s || '')
+      .replace(/[\u0591-\u05c7\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff"'׳״`’‘“”!?*]/g, '')   // ניקוד, כיווניות, גרשיים
+      .replace(/[\-־–—_\/\\,;:.()\[\]{}\s]+/g, ' ').trim();
+    if (s.indexOf('וו') >= 0) s = s.replace(/ו{2,}/g, 'ו');
+    if (s.indexOf('יי') >= 0) s = s.replace(/י{2,}/g, 'י');
+    if (s.indexOf('רבינו') >= 0) s = s.replace(/(^| )רבינו(?= |$)/g, '$1רבנו');
+    return s;
+  }
+  /* ה' הידיעה: מסירים "ה" מובילה בכל מילה רק כשנשארות לפחות 3 אותיות (הלל נשאר) */
+  function stripH(s) {
+    if (s.charCodeAt(0) !== 1492 && s.indexOf(' ה') < 0) return s;
+    return s.replace(/(^| )ה(?=[^ ]{3}|ר[^ ]( |$))/g, '$1');
+  }   // וגם הר"ן/הר"ש (ה + ר + אות)
+  function skel(s) {      // שלד כתיב: בלי ו/י/א ועם אותיות סופיות מאוחדות (מפראג = מפרג)
+    s = s.replace(/[ויא]/g, '');
+    return /[ךםןףץ]/.test(s) ? s.replace(/[ךםןףץ]/g, function (c) { return FIN[c]; }) : s;
+  }
+  (function () {
+    var o = {};
+    Object.keys(ALIASES).forEach(function (k) { o[nrmS(k)] = ALIASES[k].map(nrmS); });
+    ALIASES = o;
+  })();
+  /* חלקי שם/כינוי נפרדים ("קארו, יוסף - בית יוסף", "...,הרמב"ם,רמב"ם", "(הרא"ש)") להתאמה מדויקת; null כשיש חלק אחד */
+  var SEP1 = /\s[-–—]+\s|[()]/, SEP2 = /,|\s[-–—]+\s|[()]/;
+  function pieces(a1, a2, n1, n2) {
+    a1 = String(a1 || ''); a2 = String(a2 || '');
+    if (!SEP1.test(a1) && !SEP2.test(a2)) return null;
+    var p = String(a1 || '').split(/\s+[-–—]+\s+|[()]/).concat(String(a2 || '').split(/,|\s+[-–—]+\s+|[()]/)), o = [], i, v;
+    for (i = 0; i < p.length; i++) { v = stripH(nrmS(p[i])); if (v && v !== n1 && v !== n2 && o.indexOf(v) < 0) o.push(v); }
+    return o.length ? o : null;
   }
 
   /* גימטריה: 15 -> ט"ו, 16 -> ט"ז, אות בודדת -> עם גרש */
@@ -108,7 +144,7 @@
     for (var i = 0; i < arr.length; i++) {
       var r = arr[i], x = idToX.get(r.i);
       if (x == null) continue;
-      bioN[x] = nrm((r.b || '') + ' ' + (r.bp || '') + ' ' + (r.dp || ''));
+      bioN[x] = nrmS((r.b || '') + ' ' + (r.bp || '') + ' ' + (r.dp || ''));
     }
   }
   function loadShard(n) {
@@ -143,12 +179,16 @@
     return new Promise(function (done) {
       var i = 0;
       (function chunk() {
-        var e = Math.min(i + 6000, A.length);
+        var e = Math.min(i + 3000, A.length);
         for (; i < e; i++) {
           var a = A[i], b = a[3], d = a[4];
           var key = b > 0 ? b : (d > 0 ? Math.max(1, d - 60) : 0);
-          var nn = nrm(a[1]), na = nrm(a[2]);
-          R.push({ a: a, nn: nn, na: na, nk: nn + ' ' + na, nb: nrm(a[7]), key: key, e: eraNum(key) });
+          var nn = nrmS(a[1]), na = nrmS(a[2]), al = a[11] ? nrmS(a[11]) : '';   // a[11] = שמות חלופיים (אופציונלי)
+          var k0 = nn + ' ' + na + (al ? ' ' + al : ''), k1 = ' ' + stripH(k0) + ' ';
+          var nn1 = stripH(nn), na1 = stripH(na), ex = pieces(a[1], a[2], nn1, na1);
+          if (/[-–]\s*(?:אחי|אחיו|זקנו|גיס|חתן|נכד|אבי|אביו|תלמיד|רבו|בנו|בן)(?:\s|$)/.test(a[1])) { na1 = ''; ex = null; }   // "אברהם מראגולה-אחי": הכינוי "הגר"א" הוא של קרוב, לא התאמה מדויקת
+          R.push({ a: a, nn1: nn1, na1: na1, ex: ex, exs: ex ? ex.map(skel) : null, sn: skel(nn1), sa: skel(na1),
+            k0: k0, k1: k1, sk: skel(k1), nb: nrmS(a[7]), key: key, e: eraNum(key) });
           idToX.set(a[0], i);
           if (!nameToX.has(a[1])) nameToX.set(a[1], i);
           if (key > 0 && key <= 2100) histAll[key]++; else if (!key) noYear++;
@@ -179,26 +219,111 @@
   }
 
   /* ----- חיפוש ----- */
-  function parseQ(q) {
-    var n = nrm(q);
-    if (!n) return { t: [], full: '', strip: '' };
-    var t = n.split(' ');
+  /* תת-שאילתה: t1 = טוקנים בלי תארים ובלי ה' הידיעה; ph = ביטויים (מילים שלמות); sk = שלד כתיב */
+  function subQ(n, main) {
+    var t = n.split(' ').filter(Boolean);
     var f = t.filter(function (w) { return TITLES.indexOf(w) < 0; });
     if (!f.length) f = t;
-    return { t: f, full: n, strip: f.join(' ') };
+    var s1 = stripH(f.join(' ')), full1 = stripH(t.join(' '));
+    var t1 = s1.split(' '), ph = [], sk = null, i, w, k, big = false, ks = skel(s1);
+    if (t1.length > 1) ph.push(' ' + s1 + ' ');
+    if (t.length > 1 && full1 !== s1) ph.push(' ' + full1 + ' ');
+    if (main) {
+      sk = [];
+      for (i = 0; i < t1.length; i++) {
+        w = t1[i]; k = skel(w);
+        if (k.length < 2 || /[^א-ת0-9]/.test(k)) { sk = null; break; }
+        if (k.length > 2) big = true;
+        var ka = '';      // כינוי-מקום: וולוזינר -> וולוזין
+        if (w.length >= 6 && w.charAt(w.length - 1) === 'ר') { ka = skel(w.slice(0, -1)); if (ka.length < 2) ka = ''; }
+        sk.push(new RegExp('(?:^| )[מבלשכ]?(?:' + k + (ka ? '|' + ka : '') + ')(?: |$)'));   // מילה שלמה בשלד, עם אות שימוש אחת (מוולוזין)
+      }
+      if (!big) sk = null;
+    }
+    var w2 = [], skp = [];
+    for (i = 0; i < t1.length; i++) w2.push(' ' + t1[i] + ' ');
+    if (sk) for (i = 0; i < t1.length; i++) {
+      k = skel(t1[i]);
+      if (t1[i].length >= 6 && t1[i].charAt(t1[i].length - 1) === 'ר') k = skel(t1[i].slice(0, -1));
+      skp.push(k);
+    }
+    return { t0: f, t1: t1, w: w2, s1: s1, full1: full1, pre: full1 + ' ', main: main, ph: ph, sk: sk, skp: skp, ks: ks.length >= 6 ? ks : null };
+  }
+  function parseQ(q) {
+    var n = nrmS(q);
+    if (!n) return { t: [], full: '', strip: '', subs: [] };
+    var m = subQ(n, true), subs = [m], al = ALIASES[m.s1];
+    if (al) for (var i = 0; i < al.length; i++) subs.push(subQ(al[i], false));
+    return { t: m.t1, full: m.full1, strip: m.s1, subs: subs };
   }
   function hasAll(s, toks) {
     for (var i = 0; i < toks.length; i++) if (s.indexOf(toks[i]) < 0) return false;
     return true;
   }
-  /* דרגת התאמה: 0 מדויק · 1 שם/כינוי · 2 ספרים · 3 ביוגרפיה · -1 אין */
-  function tierOf(r, x, Q) {
-    if (Q.full === r.nn || Q.full === r.na || Q.strip === r.nn || Q.strip === r.na) return 0;
-    if (hasAll(r.nk, Q.t)) return 1;
-    var s2 = r.nk + ' ' + r.nb;
-    if (hasAll(s2, Q.t)) return 2;
-    if (S.bio && bioN[x] && hasAll(s2 + ' ' + bioN[x], Q.t)) return 3;
+  function hasWords(k1, toks) {       // k1 ממורפד ברווחים בקצוות: התאמת מילה שלמה
+    for (var i = 0; i < toks.length; i++) if (k1.indexOf(toks[i]) < 0) return false;
+    return true;
+  }
+  function hasSk(sk, q) {
+    var i;
+    for (i = 0; i < q.sk.length; i++) if (sk.indexOf(q.skp[i]) < 0) return false;      // סינון מהיר לפני ביטוי רגולרי
+    for (i = 0; i < q.sk.length; i++) if (!q.sk[i].test(sk)) return false;
+    return true;
+  }
+  /* דרגה בשם/כינוי/שם חלופי: 3 ביטוי שלם · 4 מילים שלמות · 5 תת-מחרוזת · 6 כתיב (שלד, מילה שלמה) · -1 אין */
+  function tierName(q, k0, k1, sk) {
+    for (var i = 0; i < q.ph.length; i++) if (k1.indexOf(q.ph[i]) >= 0) return 3;
+    if (hasWords(k1, q.w)) return 4;
+    if (!q.main) return -1;      // שמות חלופיים מוגדרים (מרן): ביטוי/מילים שלמות בלבד
+    if (hasAll(k0, q.t0)) return 5;      // תת-מחרוזת: בלי הסרת ה' (הצורה המקורית), כדי לא להרחיב יתר על המידה
+    if (q.sk && hasSk(sk, q)) return 6;
     return -1;
+  }
+  /* התאמה מדויקת לשם/כינוי/אחד מחלקיהם: 0 · באותיות שלד בלבד: 1 · חלק שמתחיל בשאילתה: 2 · אחרת -1 */
+  function tierExact(r, q) {
+    var s1 = q.s1, f1 = q.full1, i, e = r.ex;
+    if (s1 === r.nn1 || s1 === r.na1 || f1 === r.nn1 || f1 === r.na1) return 0;
+    if (e) for (i = 0; i < e.length; i++) if (e[i] === s1 || e[i] === f1) return 0;
+    if (q.ks) {
+      if (q.ks === r.sn || q.ks === r.sa) return 1;
+      if (e) for (i = 0; i < e.length; i++) if (r.exs[i] === q.ks) return 1;
+    }
+    var pre = q.pre;      // שם/כינוי/חלק שמתחיל בשאילתה: "מהר"ל מפרג" לחיפוש "המהר"ל"
+    if (r.nn1.startsWith(pre) || r.na1.startsWith(pre)) return 2;
+    if (e) for (i = 0; i < e.length; i++) if (e[i].startsWith(pre)) return 2;
+    return -1;
+  }
+  /* דרגת התאמה: 0 מדויק · 1 מדויק בכתיב · 2 תחילת חלק · 3 ביטוי · 4 מילים שלמות · 5 תת-מחרוזת בשם/כינוי · 6 כתיב · 7 ספרים · 8 ביוגרפיה · -1 אין */
+  function tierOf(r, x, Q) {
+    var best = -1, i, q, t, s2;
+    for (i = 0; i < Q.subs.length; i++) {
+      q = Q.subs[i];
+      if (!q.main && r.k0.indexOf(q.t1[0]) < 0) continue;     // שם חלופי מוגדר: סינון מהיר
+      t = tierExact(r, q);
+      if (t === 0) return 0;
+      if (t < 0) t = tierName(q, r.k0, r.k1, r.sk);
+      if (t >= 0 && (best < 0 || t < best)) best = t;
+    }
+    if (best >= 0) return best;
+    q = Q.subs[0];
+    s2 = r.k0 + ' ' + r.nb;
+    if (hasAll(s2, q.t0)) return 7;
+    if (S.bio && bioN[x] && hasAll(s2 + ' ' + bioN[x], q.t0)) return 8;
+    return -1;
+  }
+  /* חיווי "נמצא לפי": כשהרשומה נמצאה רק דרך שם חלופי (עמודה 11) מחזיר אותו, אחרת '' */
+  function altHit(x) {
+    var a = R[x].a, Q = curQ;
+    if (!a[11] || !Q || !Q.t.length || S.mode === 'ys') return '';
+    var p0 = nrmS(a[1] + ' ' + a[2]), p1 = ' ' + stripH(p0) + ' ', i, j, n, n1;
+    for (i = 0; i < Q.subs.length; i++) if (tierName(Q.subs[i], p0, p1, skel(p1)) > 0) return '';
+    var alts = String(a[11]).split(/\s*;\s*/).filter(Boolean), part = '';
+    for (j = 0; j < alts.length; j++) {
+      n = nrmS(alts[j]); n1 = ' ' + stripH(n) + ' ';
+      for (i = 0; i < Q.subs.length; i++) if (tierName(Q.subs[i], n, n1, skel(n1)) > 0) return alts[j];
+      if (!part) for (i = 0; i < Q.t.length; i++) if (n.indexOf(Q.t[i]) >= 0) { part = alts[j]; break; }
+    }
+    return part;
   }
 
   /* ----- יארצייט: תאריך עברי ----- */
@@ -238,11 +363,14 @@
   function birthK(r) { return r.a[3] > 0 ? r.a[3] : (r.key > 0 ? r.key : 1e9); }
   function deathK(r) { var d = r.a[4]; return d > 0 ? d : (r.a[3] > 0 ? r.a[3] + 60 : 1e9); }
 
+  function prom(r) { var a = r.a; return (a[11] ? 3 : 0) + (a[3] && a[4] ? 1 : 0) + (a[7] ? 1 : 0); }
+
   function compute() {
     if (S.mode === 'ys') { computeYs(); return; }
     if (!ready) return;
     lastRun = Date.now();
     var Q = parseQ(S.q), n = Q.t.length, yz = S.mode === 'yz', x, r, t;
+    curQ = Q;
     var bk = S.q + '|' + S.mode + '|' + S.yd + '|' + S.ym + '|' + (S.bio && S.q ? Object.keys(shardCache).length : 0);
     if (bk !== baseKey) {          // בסיס (לפי חיפוש/מצב) + ההיסטוגרמה של הציר — מחושבים מחדש רק כשהשתנו
       baseKey = bk;
@@ -273,7 +401,11 @@
     } else if (S.sort === 'death') {
       cmp = function (p, q) { return (baseT[p] - baseT[q]) || (deathK(R[base[p]]) - deathK(R[base[q]])); };
     } else {
-      cmp = function (p, q) { return (baseT[p] - baseT[q]); };   // סדר האינדקס = לפי שם (מיון יציב)
+      /* דרגה (כתיב-שלד זהה = מדויק) ואז בולטות: שם חלופי/שנים/ספרים — כדי שהדמות עצמה תקדים את קרוביה ("אחי הגר"א"); אחר כך סדר האינדקס */
+      cmp = n ? function (p, q) {
+        var ta = baseT[p] === 1 ? 0 : baseT[p], tb = baseT[q] === 1 ? 0 : baseT[q];
+        return (ta - tb) || (prom(R[base[q]]) - prom(R[base[p]])) || (p - q);
+      } : function (p, q) { return (baseT[p] - baseT[q]); };
     }
     pos.sort(cmp);
     res = pos.map(function (p) { return base[p]; });
@@ -316,9 +448,10 @@
     return b ? 'נולד ' + b : 'נפטר ' + d;
   }
   function rowHtml(x, first) {
-    var a = R[x].a;
+    var a = R[x].a, ah = altHit(x);
     return '<div class="row rb-row' + (x === S.cur ? ' active' : '') + '" data-x="' + x + '" role="button" tabindex="' + (first ? 0 : -1) + '">' +
-      '<span class="nm">' + h(a[1]) + (a[2] ? ' <small class="rb-k">' + h(a[2]) + '</small>' : '') + '</span>' +
+      '<span class="nm">' + h(a[1]) + (a[2] ? ' <small class="rb-k">' + h(a[2]) + '</small>' : '') +
+      (ah ? '<small class="rb-k rb-alt" style="display:block;font-size:.72em">נמצא לפי: ' + h(ah) + '</small>' : '') + '</span>' +
       (yrs(a) ? '<span class="rb-yrs">' + h(yrs(a)) + '</span>' : '') + (R[x].e ? '<i class="rb-edot e' + R[x].e + '"></i>' : '') + '</div>';
   }
   function more() {
@@ -798,7 +931,7 @@
     ysState = 'ok';
     YS = window.YESHIVOT || [];
     YSN = YS.map(function (y) {
-      return nrm([y.name, y.city, y.founder, ysText(y.roshei), ysText(y.students), ysText(y.details)].join(' '));
+      return nrmS([y.name, y.city, y.founder, ysText(y.roshei), ysText(y.students), ysText(y.details)].join(' '));
     });
     if (S.mode === 'ys') compute();
   }
