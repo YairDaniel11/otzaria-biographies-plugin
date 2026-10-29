@@ -11,6 +11,11 @@
   var BASE = 'data/rabbis/';
   var PAGE = 150;                 // שורות לכל מנת רינדור
   var TITLES = ['ר', 'רבי', 'הרב', 'רבנו', 'מהרר', 'מוהרר', 'הקדוש', 'הגאון', 'הצדיק'];   // תארים שמתעלמים מהם בחיפוש (רבינו מקופל ל-רבנו)
+  var TANA_LINK = {   // שם רשומה -> שם ערך בלשונית תנאים ואמוראים (רק זהויות חד-משמעיות; שם פרטי בלבד לא נכלל)
+    'חוני המעגל': 'חוני המעגל', 'התנא יונתן בן עוזיאל': 'יונתן בן עוזיאל', 'רבי אלעזר בן ערך': 'רבי אלעזר בן ערך',
+    'רבי חנינא סגן הכהנים': 'רבי חנינא סגן הכהנים', 'רבי יהודה בר אלעאי': 'רבי יהודה בר אלעאי',
+    'רבי יהודה הנשיא': 'רבי יהודה הנשיא', 'רבי יוחנן הסנדלר': "ר' יוחנן הסנדלר", "ר' אלעזר הקליר": "ר' אלעזר הקליר", 'אלעזר הקליר': "ר' אלעזר הקליר"
+  };
   var ALIASES = { 'מרן': ['יוסף קארו', 'קארו יוסף', 'בית יוסף'] };   // מילת חיפוש -> שמות חלופיים (מתאימים לשם/כינוי בלבד; מנורמל ב-nrmS למטה)
   var MON = ['תשרי', 'חשון', 'כסלו', 'טבת', 'שבט', 'אדר', 'ניסן', 'אייר', 'סיון', 'תמוז', 'אב', 'אלול', 'אדר א', 'אדר ב'];  // כמו RB_MONTHS (זמין לפני טעינת האינדקס)
   var EN_MONTHS = {               // שמות חודשים (Intl באנגלית) -> אינדקס ב-RB_MONTHS
@@ -614,7 +619,8 @@
       fact('נפטר', lifeVal(rec.dt, a[4], rec.dp)) +
       fact('יארצייט', yzv) + '</div>' +
       '<div class="rb-acts">' +
-      (r.key > 0 ? '<button type="button" class="navbtn rb-gen">' + ic('calendar', 16) + '<span>בני דורו</span></button>' : '') + '</div>' +
+      (r.key > 0 ? '<button type="button" class="navbtn rb-gen">' + ic('calendar', 16) + '<span>בני דורו</span></button>' : '') +
+      (TANA_LINK[a[1]] ? '<button type="button" class="navbtn rb-tana" data-n="' + h(TANA_LINK[a[1]]) + '">' + ic('person', 16) + '<span>ערך בתנאים ואמוראים</span></button>' : '') + '</div>' +
       (rec.b ? '<div class="body rb-bio-t">' + h(rec.b) + '</div>' : '') +
       (rec.s ? '<div class="rb-src"><b>מקורות:</b> ' + rec.s.split('; ').map(function (t, i) {
         return '<span class="rb-srcitem" data-i="' + i + '">' + h(t) + '</span>';
@@ -1185,6 +1191,7 @@
         view.classList.remove('show-detail');
         return;
       }
+      if ((c = t.closest('.rb-tana'))) { if (window.openBioByName) window.openBioByName(c.dataset.n); return; }
       if (t.closest('.rb-gen')) {
         var r = R[S.cur];
         if (!r || r.key <= 0) return;

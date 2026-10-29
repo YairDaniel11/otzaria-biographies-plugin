@@ -27,7 +27,7 @@ from hebdates import _spell_norm, _SKIP_TOKENS
 from rtflib import rtf_paragraphs
 
 # הצגת "מקורות" (ספרי העיון שמהם נלקח המידע) כבויה בינתיים — להפעלה: True ובנייה מחדש
-INCLUDE_SOURCES = False
+INCLUDE_SOURCES = True
 # שמות (בדיוק כפי שהם ברשומה) שהוסרו לבקשת בעל התוסף — לא יחזרו בבנייה חוזרת
 EXCLUDE_NAMES = {
     "ר' שניאור אשכנזי",

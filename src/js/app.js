@@ -257,6 +257,16 @@ function open(id, opt) {
   }
   render(e);
 }
+/* פתיחת ערך בלשונית תנאים ואמוראים לפי שם מדויק (משמש את לשונית "ראשונים ואחרונים") */
+window.openBioByName = function (name) {
+  const e = (window.BIO_DATA || []).find(x => x.n === name);
+  const tab = document.querySelector('.tab[data-tab="bio"]');
+  if (!e || !tab) return false;
+  tab.click();
+  open(e.i);
+  return true;
+};
+
 
 function goBack() { if (hpos > 0) { hpos--; open(hist[hpos], { push: false, random: false }); } }
 function goNext() {
