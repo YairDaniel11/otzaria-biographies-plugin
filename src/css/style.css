@@ -524,12 +524,13 @@ input.rf-input[type=email]{text-align:right}
 }
 
 /* ---- מסך רחב: שורה אחת — שם התוסף, לשוניות, חיפוש וכפתור גופן ---- */
-@media(min-width:1100px){
+@media(min-width:1400px){
   .topbar{display:flex; align-items:center; gap:6px; padding:0 14px; height:var(--bar-h)}
   .appbar{display:contents}
   .brand{order:1; margin-inline-end:6px}
-  .tabs{order:2; padding:0; flex:0 1 auto; min-width:0}
-  .tabs .tab{height:var(--bar-h); padding:0 12px}
-  .searches{order:3; flex:1 1 180px; min-width:150px; padding-inline-start:8px}
+  .tabs{order:2; padding:0; flex:0 0 auto; min-width:0}
+  .tabs .tab{height:var(--bar-h); padding:0 12px; flex:0 0 auto}
+  .searches{order:3; flex:1 1 0; min-width:220px; padding-inline-start:8px}
+  .searches .search{min-width:0}
   .fontbtn{order:4}
 }
