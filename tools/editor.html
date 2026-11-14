@@ -1,0 +1,634 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>עורך ביוגרפיות</title>
+<style>
+:root{--bg:#f5f5f2;--panel:#fff;--ink:#1d1d1b;--mut:#6b6b66;--line:#dcdcd5;--acc:#1f5fbf;--acc-i:#fff;--ok:#1a7f45;--bad:#b3261e;--warn:#9a6700;--hl:#eaf1fc}
+@media (prefers-color-scheme:dark){:root{--bg:#161615;--panel:#212120;--ink:#ececE8;--mut:#9a9a94;--line:#363633;--acc:#6aa3ff;--acc-i:#10131a;--ok:#4cc27f;--bad:#ff8a80;--warn:#e3b341;--hl:#26324a}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",Arial,sans-serif;height:100vh;display:flex;flex-direction:column}
+header{display:flex;gap:10px;align-items:center;padding:10px 16px;background:var(--panel);border-bottom:1px solid var(--line);flex-wrap:wrap}
+header h1{font-size:17px;margin:0 0 0 8px}
+header .sp{flex:1}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:6px 12px;border-radius:8px}
+button:hover{border-color:var(--acc)}
+button.pri{background:var(--acc);color:var(--acc-i);border-color:var(--acc);font-weight:600}
+button.dng{color:var(--bad);border-color:var(--bad)}
+button:disabled{opacity:.45;cursor:default}
+input,textarea,select{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 9px;width:100%}
+textarea{resize:vertical;min-height:50px}
+input:focus,textarea:focus,select:focus{outline:2px solid var(--acc);outline-offset:-1px}
+#main{flex:1;display:grid;grid-template-columns:400px 1fr;min-height:0}
+@media(max-width:800px){#main{grid-template-columns:1fr;grid-template-rows:45% 1fr}}
+aside{border-inline-end:1px solid var(--line);display:flex;flex-direction:column;min-height:0;background:var(--panel)}
+.tabs{display:flex;border-bottom:1px solid var(--line)}
+.tabs button{flex:1;border:0;border-radius:0;border-bottom:3px solid transparent;background:none}
+.tabs button.on{border-bottom-color:var(--acc);font-weight:700}
+.sbox{padding:10px 10px 4px}
+#chips{display:flex;gap:6px;flex-wrap:wrap;padding:4px 10px 10px;border-bottom:1px solid var(--line)}
+.chip{padding:3px 11px;border-radius:99px;font-size:.85em}
+.chip.on{background:var(--acc);color:var(--acc-i);border-color:var(--acc);font-weight:600}
+#list{flex:1;overflow:auto}
+.row{padding:8px 12px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;gap:8px;justify-content:space-between;align-items:baseline}
+.row:hover{background:var(--hl)}.row.on{background:var(--hl);box-shadow:inset 3px 0 var(--acc)}
+.row small{color:var(--mut);white-space:nowrap}
+.row .k{color:var(--mut);font-size:.85em}
+.grp{padding:6px 12px;background:var(--bg);font-weight:700;font-size:.85em;color:var(--mut);border-bottom:1px solid var(--line)}
+.tag{font-size:.72em;padding:1px 7px;border-radius:99px;border:1px solid currentColor;margin-inline-start:6px;white-space:nowrap}
+.t-edit{color:var(--warn)}.t-add{color:var(--ok)}.t-del{color:var(--bad)}.t-cat{color:var(--mut)}
+section#ed{overflow:auto;padding:18px 24px}
+.empty{color:var(--mut);padding:40px 12px;text-align:center}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;margin-bottom:12px}
+label{display:block;font-size:.82em;color:var(--mut);margin-bottom:3px}
+.full{margin-bottom:12px}
+.bar{display:flex;gap:8px;margin:16px 0;flex-wrap:wrap;position:sticky;bottom:0;background:var(--bg);padding:10px 0;border-top:1px solid var(--line)}
+h2{margin:0 0 4px;font-size:20px}
+.hint{color:var(--mut);font-size:.85em}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);padding:20px;max-width:560px;width:92%}
+dialog::backdrop{background:#0008}
+label.c{display:flex;gap:8px;align-items:center;font-size:1em;color:var(--ink);margin:8px 0}
+label.c input{width:auto}
+#log{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:13px/1.6 Consolas,monospace;max-height:200px;overflow:auto;white-space:pre-wrap;margin-top:12px;display:none}
+.ok{color:var(--ok)}.err{color:var(--bad)}
+#toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:9px 18px;border-radius:99px;opacity:0;transition:opacity .25s;pointer-events:none}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+<header>
+  <h1>עורך ביוגרפיות</h1>
+  <button id="bPick" class="pri">בחר תיקיית מאגר</button>
+  <span id="status" class="hint">לא נבחרה תיקייה</span>
+  <span class="sp"></span>
+  <span id="pendInfo" class="hint"></span>
+  <button id="bNew" disabled>＋ ערך חדש</button>
+  <button id="bSave" class="pri" disabled>שמור ופרסם…</button>
+</header>
+
+<div id="main">
+  <aside>
+    <div class="tabs">
+      <button data-t="search" class="on">חיפוש</button>
+      <button data-t="dups">כפילויות</button>
+      <button data-t="pend">שינויים (<span id="pc">0</span>)</button>
+    </div>
+    <div class="sbox" id="sbox"><input id="q" type="search" placeholder="חיפוש לפי שם, כינוי או ספר…" disabled></div>
+    <div id="chips"></div>
+    <div id="list"><div class="empty">בחר את תיקיית המאגר כדי להתחיל</div></div>
+  </aside>
+  <section id="ed"><div class="empty">בחר ערך מהרשימה כדי לערוך</div></section>
+</div>
+
+<dialog id="dNew">
+  <h2>ערך חדש</h2>
+  <div class="full"><label>סוג</label><select id="nCat"></select></div>
+  <div class="full"><label>שם</label><input id="nName"></div>
+  <div class="full" id="nSecBox" style="display:none"><label>תקופה (איפה להוסיף בסדר הדורות)</label><select id="nSec"></select></div>
+  <div class="bar" style="position:static;border:0;padding:0;margin:8px 0 0">
+    <button class="pri" id="nGo">צור</button><button id="nCancel">סגור</button>
+  </div>
+</dialog>
+
+<dialog id="dlg">
+  <h2>שמירה ופרסום</h2>
+  <div class="hint" id="dSum"></div>
+  <label class="c"><input type="checkbox" id="oBump" checked><span>העלאת מספר גרסה: <b id="vOld"></b> ← <b id="vNew"></b></span></label>
+  <label class="c"><input type="checkbox" id="oZip" checked><span>בניית קובץ <bdi>otzaria-biographies.otzplugin</bdi> בתיקיית המאגר</span></label>
+  <label class="c"><input type="checkbox" id="oPush"><span>דחיפה ישירה ל-GitHub (ייצור גרסה חדשה ע״י ה-Action)</span></label>
+  <div id="ghBox" style="display:none">
+    <div class="grid">
+      <div><label>מאגר (owner/repo)</label><input id="ghRepo" value="YairDaniel11/otzaria-biographies-plugin" dir="ltr"></div>
+      <div><label>ענף</label><input id="ghBranch" value="main" dir="ltr"></div>
+    </div>
+    <div class="full"><label>Personal Access Token (הרשאת Contents: write)</label><input id="ghTok" type="password" dir="ltr" autocomplete="off"></div>
+    <label class="c"><input type="checkbox" id="ghRem"><span>זכור את ה-token בדפדפן הזה</span></label>
+  </div>
+  <div class="full"><label>הודעת קומיט</label><input id="oMsg"></div>
+  <div class="bar" style="position:static;border:0;padding:0;margin:8px 0 0">
+    <button class="pri" id="dGo">בצע</button><button id="dCancel">סגור</button>
+    <button id="dCopy" title="להעתקת פקודות git אם מעדיפים לדחוף מהטרמינל">העתק פקודות git</button>
+  </div>
+  <div id="log"></div>
+</dialog>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ====================== עזרים ====================== */
+const $ = s => document.querySelector(s);
+const el = (t, p = {}, ...k) => { const e = Object.assign(document.createElement(t), p); k.flat().forEach(c => e.append(c)); return e; };
+const toast = m => { const t = $('#toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2400); };
+const NIQ = /[֑-ׇ]/g;
+const norm = s => String(s || '').replace(NIQ, '').replace(/["'׳״`]/g, '').replace(/[-–־_,.()]/g, ' ').replace(/\s+/g, ' ').trim();
+const FIN = { 'ך': 'כ', 'ם': 'מ', 'ן': 'נ', 'ף': 'פ', 'ץ': 'צ' };
+const REPO_DEFAULT = 'YairDaniel11/otzaria-biographies-plugin';
+const CATS = { rb: 'ראשונים ואחרונים', ta: 'תנאים ואמוראים', tn: 'דמויות מהתנ"ך' };
+const CAT_SHORT = { rb: 'ראשונים/אחרונים', ta: 'תנאים/אמוראים', tn: 'תנ"ך' };
+const TN_PERSON = new Set(['man1', 'man2', 'tsadika', 'melech1', 'melech2', 'melech3']);
+const TN_END = 'חורבן בית ראשון';       // התקופה האחרונה שנחשבת "תנ"ך" בסדר הדורות
+const jsEsc = s => s.replace(/[<>&']/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));   // כמו הקבצים המקוריים
+
+/* ====================== מצב ====================== */
+let root = null, srcDir = null, dataDir = null;
+// ראשונים ואחרונים
+let IDX = [], idxHead = '', ver = '', LETTERS = [], MONTHS = [];
+const shards = new Map(), dirty = new Set();
+let nextId = 0;
+const NORM = new Map();
+// תנאים ואמוראים (BIO_DATA + BIO_ENRICH) ותנ"ך (SEDER)
+let TA = [], SEDER = [], TN_SECS = [], TN_TIPS = {};
+const M = new WeakMap();           // אובייקט -> {e: העשרה, n: מחרוזת חיפוש}
+// כללי
+let manifestText = '', manifest = null;
+const pending = new Map();         // rb: id (מספר) | ta/tn: האובייקט  ->  {cat, kind, orig}
+let cur = null, tab = 'search', catF = 'all';
+
+/* ====================== גישה לקבצים ====================== */
+const IDB = () => new Promise((ok, no) => { const r = indexedDB.open('bio-editor', 1); r.onupgradeneeded = () => r.result.createObjectStore('h'); r.onsuccess = () => ok(r.result); r.onerror = () => no(r.error); });
+const idbGet = async k => { const d = await IDB(); return new Promise(ok => { const r = d.transaction('h').objectStore('h').get(k); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); }); };
+const idbSet = async (k, v) => { const d = await IDB(); return new Promise(ok => { const t = d.transaction('h', 'readwrite'); t.objectStore('h').put(v, k); t.oncomplete = ok; }); };
+const sub = async (d, name, create) => d.getDirectoryHandle(name, { create: !!create });
+const readText = async (d, name) => (await (await d.getFileHandle(name)).getFile()).text();
+async function writeFile(d, name, data) { const w = await (await d.getFileHandle(name, { create: true })).createWritable(); await w.write(data); await w.close(); }
+async function writeSrc(path, text) { const p = path.split('/'), n = p.pop(); let d = srcDir; for (const x of p) d = await sub(d, x, true); await writeFile(d, n, text); }
+const readSrc = async path => { const p = path.split('/'), n = p.pop(); let d = srcDir; for (const x of p) d = await sub(d, x); return readText(d, n); };
+
+async function openRoot(h) {
+  try {
+    srcDir = await sub(h, 'src'); dataDir = await sub(await sub(srcDir, 'data'), 'rabbis');
+    await srcDir.getFileHandle('manifest.json');
+  } catch (e) { alert('התיקייה שנבחרה אינה שורש המאגר (חייבת לכלול src/manifest.json ו-src/data/rabbis).'); return false; }
+  root = h; await idbSet('root', h);
+  $('#status').textContent = 'טוען נתונים…';
+  // ראשונים ואחרונים
+  const t = await readText(dataDir, 'rb-index.js'), p = t.indexOf('window.RB_INDEX=');
+  idxHead = t.slice(0, p);
+  IDX = JSON.parse(t.slice(p + 16).replace(/;\s*$/, ''));
+  ver = idxHead.match(/RB_VER="([^"]+)"/)[1];
+  LETTERS = JSON.parse(idxHead.match(/RB_LETTERS=(\[.*?\]);/s)[1]);
+  MONTHS = JSON.parse(idxHead.match(/RB_MONTHS=(\[.*?\]);/s)[1]);
+  // תנאים ואמוראים
+  const body = (txt, pre) => JSON.parse(txt.slice(pre.length).replace(/;\s*$/, ''));
+  TA = body(await readSrc('data/bio-data.js'), 'window.BIO_DATA = ');
+  const et = await readSrc('data/bio-enrich.js'), E = JSON.parse(et.slice(et.indexOf('=') + 1).trim().replace(/;\s*$/, ''));
+  TA.forEach(e => M.set(e, { e: E[e.i] }));
+  // סדר הדורות (תנ"ך)
+  SEDER = body(await readSrc('seder-hadorot/seder-list.js'), 'window.SEDER = ');
+  const secs = [...new Set(SEDER.map(x => x.sec))]; TN_SECS = secs.slice(0, secs.indexOf(TN_END) + 1);
+  TN_TIPS = {}; SEDER.forEach(x => { if (!TN_TIPS[x.type]) TN_TIPS[x.type] = x.tip; });
+  manifestText = await readText(srcDir, 'manifest.json'); manifest = JSON.parse(manifestText);
+  shards.clear(); dirty.clear(); pending.clear(); NORM.clear(); cur = null;
+  nextId = IDX.reduce((m, r) => Math.max(m, r[0]), 0) + 1;
+  setStatus(); $('#q').disabled = false; $('#bNew').disabled = false; $('#bPick').textContent = 'החלף תיקייה';
+  renderList(); refreshPending(); showEmpty();
+  return true;
+}
+const setStatus = () => { $('#status').textContent = `${IDX.length.toLocaleString('he')} ראשונים/אחרונים · ${TA.length.toLocaleString('he')} תנאים/אמוראים · ${tnList().length} דמויות תנ"ך · גרסה ${manifest.version}`; };
+
+async function loadShard(n) {
+  if (shards.has(n)) return shards.get(n).arr;
+  const t = await readText(dataDir, `rb-${ver}-${n}.js`);
+  const a = t.indexOf('=[', t.indexOf('RB_SHARDS[')) + 1, b = t.lastIndexOf(';\nwindow.RB_LOADED');
+  const arr = JSON.parse(t.slice(a, b)); shards.set(n, { arr }); return arr;
+}
+const shardText = (n, arr) => `window.RB_SHARDS=window.RB_SHARDS||{};window.RB_SHARDS[${n}]=${JSON.stringify(arr)};\nwindow.RB_LOADED&&window.RB_LOADED(${n});\n`;
+const idxText = v => idxHead.replace(/RB_VER="[^"]*"/, `RB_VER="${v}"`) + 'window.RB_INDEX=' + JSON.stringify(IDX) + ';\n';
+function recPos(arr, id) { let lo = 0, hi = arr.length; while (lo < hi) { const m = (lo + hi) >> 1; if (arr[m].i < id) lo = m + 1; else hi = m; } return lo; }
+const findRec = (arr, id) => { const p = recPos(arr, id); return arr[p] && arr[p].i === id ? arr[p] : arr.find(r => r.i === id) || null; };
+const xOf = id => IDX.findIndex(r => r[0] === id);
+function shardFor(name) { const m = String(name).match(/[א-ת]/); return m ? LETTERS.indexOf(FIN[m[0]] || m[0]) : -1; }
+const cq = s => String(s).replace(/["'׳״]/g, '');
+function insertRow(row) {
+  const sh = row[10]; let first = -1, last = -1;
+  for (let i = 0; i < IDX.length; i++) if (IDX[i][10] === sh) { if (first < 0) first = i; last = i; } else if (first >= 0) break;
+  let pos;
+  if (first < 0) { pos = IDX.findIndex(r => r[10] > sh); if (pos < 0) pos = IDX.length; }
+  else { pos = last + 1; const k = cq(row[1]); for (let i = first; i <= last; i++) if (cq(IDX[i][1]) > k) { pos = i; break; } }
+  IDX.splice(pos, 0, row);
+}
+const insertRec = (arr, rec) => arr.splice(recPos(arr, rec.i), 0, rec);
+function normOf(row) { let v = NORM.get(row[0]); if (v == null) { v = norm([row[1], row[2], row[11] || '', row[7]].join(' ')); NORM.set(row[0], v); } return v; }
+
+/* ====================== תנאים/אמוראים ותנ"ך: עזרים ====================== */
+const tnList = () => SEDER.filter(e => TN_SECS.includes(e.sec) && TN_PERSON.has(e.type));
+const arrOf = cat => cat === 'ta' ? TA : SEDER;
+const TITLE = /^(רבינו|רבי|רבן|רב|ר['׳])\s+/;
+const taKey = e => cq(e.n.replace(TITLE, ''));
+const letterOf = n => { const m = n.replace(TITLE, '').match(/[א-ת]/); return m ? (FIN[m[0]] || m[0]) : 'א'; };
+function normTa(e) { const m = M.get(e); if (m.n == null) m.n = norm(e.n); return m.n; }
+function placeTa(obj) {            // מציב לפי אות + שם, בתוך קבוצת האות
+  let first = -1, last = -1; TA.forEach((x, i) => { if (x.l === obj.l) { if (first < 0) first = i; last = i; } });
+  let pos; const k = taKey(obj);
+  if (first < 0) { pos = TA.findIndex(x => x.l > obj.l); if (pos < 0) pos = TA.length; }
+  else { pos = last + 1; for (let i = first; i <= last; i++) if (taKey(TA[i]) > k) { pos = i; break; } }
+  TA.splice(pos, 0, obj);
+}
+function placeAfterSec(obj, sec) {
+  let last = -1; SEDER.forEach((x, i) => { if (x.sec === sec) last = i; });
+  SEDER.splice(last < 0 ? SEDER.length : last + 1, 0, obj);
+}
+function snapObj(cat, obj) {
+  if (pending.has(obj)) return;
+  const a = arrOf(cat), i = a.indexOf(obj), m = M.get(obj);
+  pending.set(obj, { cat, kind: 'edit', orig: { obj: { ...obj }, enr: m && m.e ? { ...m.e } : undefined, prev: a[i - 1], pi: i } });
+}
+function reinsert(cat, obj, o) {
+  const a = arrOf(cat);
+  if (o.prev && a.includes(o.prev)) a.splice(a.indexOf(o.prev) + 1, 0, obj);
+  else a.splice(Math.min(o.pi, a.length), 0, obj);
+}
+
+/* ====================== רשימות ====================== */
+const yrs = r => (r[3] || r[4]) ? `${r[3] || '?'}–${r[4] || '?'}` : '';
+const rbItem = r => ({ cat: 'rb', ref: r[0], name: r[1], sub: r[2], yrs: yrs(r) });
+const showTa = n => String(n).replace(/\s*\(\d+\)\s*$/, '');   // כמו splitName בתוסף: המספר בסוגריים לא מוצג
+const taItem = e => ({ cat: 'ta', ref: e, name: showTa(e.n), full: e.n, sub: (e.b || '').slice(0, 55), yrs: '' });
+const tnItem = e => ({ cat: 'tn', ref: e, name: e.name, sub: e.desc || e.sec, yrs: [e.y1, e.y2].filter(Boolean).join('–') });
+function rowEl(it) {
+  const p = pending.get(it.ref);
+  const d = el('div', { className: 'row' + (cur && cur.cat === it.cat && cur.ref === it.ref ? ' on' : '') },
+    el('span', {}, it.name, it.sub ? el('span', { className: 'k', textContent: ' · ' + it.sub }) : '',
+      catF === 'all' ? el('span', { className: 'tag t-cat', textContent: CAT_SHORT[it.cat] }) : '',
+      p && p.cat === it.cat ? el('span', { className: 'tag t-' + p.kind, textContent: { edit: 'נערך', add: 'חדש', del: 'נמחק' }[p.kind] }) : ''),
+    el('small', { textContent: it.yrs }));
+  d.onclick = () => openItem(it.cat, it.ref);
+  return d;
+}
+const rankOf = (it, q) => { const n = norm(it.name); return n === q ? 0 : n.startsWith(q) ? 1 : 2; };
+function renderChips(counts) {
+  const c = $('#chips'); c.textContent = '';
+  c.style.display = tab === 'pend' ? 'none' : 'flex';
+  [['all', 'הכל'], ...Object.entries(CATS)].forEach(([k, l]) => {
+    const n = counts ? (k === 'all' ? counts.rb + counts.ta + counts.tn : counts[k]) : null;
+    const b = el('button', { className: 'chip' + (catF === k ? ' on' : ''), textContent: l + (n != null ? ` (${n.toLocaleString('he')})` : '') });
+    b.onclick = () => { catF = k; renderList(); }; c.append(b);
+  });
+}
+const cats = () => catF === 'all' ? ['rb', 'ta', 'tn'] : [catF];
+function renderList() {
+  const L = $('#list'); L.textContent = '';
+  if (!root) { renderChips(null); L.append(el('div', { className: 'empty', textContent: 'בחר את תיקיית המאגר כדי להתחיל' })); return; }
+  if (tab === 'search') {
+    const toks = norm($('#q').value).split(' ').filter(Boolean);
+    if (!toks.length) { renderChips(null); L.append(el('div', { className: 'empty', textContent: 'הקלד שם כדי לחפש, ואפשר לסנן לפי הסוג למעלה' })); return; }
+    const test = h => toks.every(t => h.includes(t)), q = toks.join(' ');
+    const res = { rb: [], ta: [], tn: [] };
+    for (const r of IDX) if (test(normOf(r))) res.rb.push(rbItem(r));
+    for (const e of TA) if (test(normTa(e))) res.ta.push(taItem(e));
+    for (const e of tnList()) if (test(norm(e.name + ' ' + e.desc))) res.tn.push(tnItem(e));
+    renderChips({ rb: res.rb.length, ta: res.ta.length, tn: res.tn.length });
+    let all = cats().flatMap(c => res[c]);
+    all.sort((a, b) => rankOf(a, q) - rankOf(b, q));
+    all.slice(0, 300).forEach(it => L.append(rowEl(it)));
+    if (!all.length) L.append(el('div', { className: 'empty', textContent: 'לא נמצאו תוצאות' }));
+    if (all.length > 300) L.append(el('div', { className: 'empty', textContent: `…ועוד ${all.length - 300} (דייק את החיפוש או סנן לפי סוג)` }));
+  } else if (tab === 'dups') {
+    renderChips(null);
+    const g = new Map(), add = it => { const k = it.cat + '|' + norm(it.full || it.name); if (k.endsWith('|')) return; (g.get(k) || g.set(k, []).get(k)).push(it); };
+    if (cats().includes('rb')) IDX.forEach(r => add(rbItem(r)));
+    if (cats().includes('ta')) TA.forEach(e => add(taItem(e)));
+    if (cats().includes('tn')) tnList().forEach(e => add(tnItem(e)));
+    const flt = norm($('#q').value), groups = [...g.values()].filter(a => a.length > 1).filter(a => !flt || norm(a[0].name).includes(flt));
+    L.append(el('div', { className: 'grp', textContent: `${groups.length} קבוצות של שמות זהים` }));
+    groups.slice(0, 300).forEach(a => { L.append(el('div', { className: 'grp', textContent: a[0].name + ' ×' + a.length })); a.forEach(it => L.append(rowEl(it))); });
+  } else {
+    renderChips(null);
+    if (!pending.size) { L.append(el('div', { className: 'empty', textContent: 'אין שינויים ממתינים' })); return; }
+    [...pending].forEach(([ref, p]) => {
+      let it;
+      if (p.cat === 'rb') { const x = xOf(ref); it = rbItem(x >= 0 ? IDX[x] : p.orig.row); }
+      else { const o = p.orig && p.kind === 'del' ? p.orig.obj : ref; it = p.cat === 'ta' ? taItem(o) : tnItem(o); it.ref = ref; }
+      const d = rowEl(it); const b = el('button', { textContent: 'בטל', title: 'בטל את השינוי הזה' });
+      b.onclick = async e => { e.stopPropagation(); await revert(ref); };
+      d.append(b); L.append(d);
+    });
+  }
+}
+function refreshPending() {
+  $('#pc').textContent = pending.size;
+  $('#pendInfo').textContent = pending.size ? `${pending.size} שינויים לא נשמרו` : '';
+  $('#bSave').disabled = !root || !pending.size;
+}
+document.querySelectorAll('.tabs button').forEach(b => b.onclick = () => {
+  tab = b.dataset.t; document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x === b));
+  $('#sbox').style.display = tab === 'pend' ? 'none' : ''; renderList();
+});
+let qt; $('#q').oninput = () => { clearTimeout(qt); qt = setTimeout(renderList, 120); };
+
+/* ====================== טפסים ====================== */
+const showEmpty = () => { $('#ed').textContent = ''; $('#ed').append(el('div', { className: 'empty', textContent: 'בחר ערך מהרשימה כדי לערוך' })); };
+function F(id, label, v, o = {}) {
+  let c;
+  if (o.sel) c = el('select', { id: 'f_' + id }, o.sel.map(([val, txt]) => el('option', { value: val, textContent: txt, selected: String(val) === String(v) })));
+  else if (o.ta) c = el('textarea', { id: 'f_' + id, value: v ?? '', rows: o.rows || 3 });
+  else c = el('input', { id: 'f_' + id, value: v ?? '', type: o.type || 'text' });
+  return el('div', { className: o.full ? 'full' : '' }, el('label', { textContent: label }), c);
+}
+const val = k => $('#f_' + k).value.trim();
+function head(title, cat, extra) {
+  return [el('h2', { textContent: title }), el('div', { className: 'hint', textContent: CATS[cat] + (extra ? ' · ' + extra : '') })];
+}
+function actionBar(ref, apply, del, cat) {
+  const bar = el('div', { className: 'bar' });
+  const a = el('button', { className: 'pri', textContent: 'החל שינויים (בזיכרון)' }); a.onclick = apply;
+  const d = el('button', { className: 'dng', textContent: 'מחק ערך' }); d.onclick = del; bar.append(a, d);
+  if (pending.has(ref)) { const r = el('button', { textContent: 'בטל שינויים בערך' }); r.onclick = () => revert(ref); bar.append(r); }
+  return [bar, el('div', { className: 'hint', textContent: 'השינויים נכתבים לקבצים רק בלחיצה על "שמור ופרסם" למעלה.' })];
+}
+async function openItem(cat, ref, isNew) {
+  if (cat === 'rb') return openRb(ref, isNew);
+  if (!arrOf(cat).includes(ref)) { toast('הערך נמחק. אפשר לבטל את המחיקה ברשימת "שינויים".'); return; }
+  cur = { cat, ref }; renderList();
+  const ed = $('#ed'); ed.textContent = '';
+  if (cat === 'ta') {
+    const e = ref, en = (M.get(e) || {}).e || {};
+    ed.append(...head(showTa(e.n), 'ta', pending.has(e) ? 'יש שינוי שלא נשמר' : ''), el('div', { style: 'height:14px' }),
+      el('div', { className: 'grid' }, F('n', 'שם', e.n), F('type', 'סוג (תנא / אמורא)', en.type), F('dor', 'דור', en.dor), F('place', 'מקום', en.place), F('mishna', 'משנה', en.mishna), F('yer', 'ירושלמי', en.yer), F('bavli', 'בבלי', en.bavli)),
+      el('label', { className: 'c' }, el('input', { type: 'checkbox', id: 'f_notable', checked: !!en.notable }), el('span', { textContent: 'מסומן כ"בולט"' })),
+      F('fact', 'עובדה מעניינת', en.fact, { ta: 1, rows: 2, full: 1 }),
+      F('b', 'ביוגרפיה', e.b, { ta: 1, rows: 10, full: 1 }),
+      ...actionBar(e, () => applyTa(e), () => delObj('ta', e)));
+  } else {
+    const e = ref;
+    ed.append(...head(e.name, 'tn', pending.has(e) ? 'יש שינוי שלא נשמר' : ''), el('div', { style: 'height:14px' }),
+      el('div', { className: 'grid' }, F('name', 'שם', e.name), F('desc', 'תיאור (בסוגריים, לדוגמה: (בעל חלומות))', e.desc),
+        F('y1', 'שנת לידה (לבריאה)', e.y1), F('y2', 'שנת פטירה', e.y2),
+        F('sec', 'תקופה', e.sec, { sel: TN_SECS.map(s => [s, s]) }),
+        F('type', 'סוג', e.type, { sel: [...TN_PERSON].map(t => [t, `${t} — ${TN_TIPS[t] || ''}`]) })),
+      ...actionBar(e, () => applyTn(e), () => delObj('tn', e)));
+  }
+}
+function applyTa(e) {
+  if (!val('n')) { alert('חובה למלא שם.'); return; }
+  snapObj('ta', e); const m = M.get(e), old = e.n;
+  e.n = val('n'); e.b = $('#f_b').value.trim(); m.n = null;
+  const out = { ...(m.e || {}) }, txt = ['type', 'dor', 'place', 'mishna', 'yer', 'bavli', 'fact'];
+  const any = txt.some(k => val(k)) || $('#f_notable').checked;
+  if (any || m.e) {
+    ['type', 'dor', 'place', 'mishna', 'yer', 'bavli'].forEach(k => out[k] = val(k));
+    out.notable = $('#f_notable').checked; out.fact = val('fact'); m.e = out;
+  }
+  if (e.n !== old) { e.l = letterOf(e.n); TA.splice(TA.indexOf(e), 1); placeTa(e); }
+  const p = pending.get(e); if (p.kind !== 'add') p.kind = 'edit';
+  refreshPending(); toast('השינוי הוחל. לא לשכוח לשמור.'); openItem('ta', e);
+}
+function applyTn(e) {
+  if (!val('name')) { alert('חובה למלא שם.'); return; }
+  snapObj('tn', e);
+  const sec = $('#f_sec').value;
+  e.name = val('name'); e.desc = val('desc'); e.y1 = val('y1'); e.y2 = val('y2'); e.type = $('#f_type').value; e.tip = TN_TIPS[e.type] || e.tip;
+  if (sec !== e.sec) { SEDER.splice(SEDER.indexOf(e), 1); e.sec = sec; placeAfterSec(e, sec); }
+  const p = pending.get(e); if (p.kind !== 'add') p.kind = 'edit';
+  refreshPending(); toast('השינוי הוחל. לא לשכוח לשמור.'); openItem('tn', e);
+}
+function delObj(cat, e) {
+  const name = cat === 'ta' ? e.n : e.name;
+  if (!confirm(`למחוק את הערך "${name}"?\n(המחיקה נכנסת לקבצים רק בשמירה, ואפשר לבטל אותה ברשימת "שינויים".)`)) return;
+  const p = pending.get(e), a = arrOf(cat);
+  if (p && p.kind === 'add') pending.delete(e);
+  else { snapObj(cat, e); pending.get(e).kind = 'del'; }
+  a.splice(a.indexOf(e), 1);
+  cur = null; showEmpty(); refreshPending(); renderList(); setStatus(); toast('הערך נמחק (בזיכרון)');
+}
+
+/* ----- ראשונים ואחרונים ----- */
+const RB_FIELDS = [['n', 'שם'], ['k', 'כינוי'], ['f', 'אב'], ['r', 'תפקיד'], ['bt', 'תאריך לידה (טקסט)'], ['bp', 'מקום לידה'], ['dt', 'תאריך פטירה (טקסט)'], ['dp', 'מקום פטירה']];
+async function openRb(id) {
+  const x = xOf(id); if (x < 0) return;
+  const row = IDX[x], arr = await loadShard(row[10]), rec = findRec(arr, id) || { i: id, n: row[1] };
+  cur = { cat: 'rb', ref: id }; renderList();
+  const ed = $('#ed'); ed.textContent = '';
+  const bk = (rec.bk && rec.bk.length ? rec.bk : (row[7] ? row[7].split('; ').map(t => [t, '']) : [])).map(b => b[1] ? b[0] + ' | ' + b[1] : b[0]).join('\n');
+  ed.append(...head(row[1], 'rb', `מזהה ${id} · קובץ ${row[10]} · תגיות: ${row[8] || '-'}` + (pending.has(id) ? ' · יש שינוי שלא נשמר' : '')),
+    el('div', { style: 'height:14px' }),
+    el('div', { className: 'grid' }, RB_FIELDS.map(([k, l]) => F(k, l, k === 'k' ? (rec.k ?? row[2]) : rec[k]))),
+    el('div', { className: 'grid' }, F('by', 'שנת לידה (מספר, 0 = לא ידוע)', row[3], { type: 'number' }), F('dy', 'שנת פטירה (0 = לא ידוע)', row[4], { type: 'number' }),
+      F('yd', 'יום יארצייט (1–30)', row[5], { type: 'number' }), F('ym', 'חודש יארצייט', row[6], { sel: [[-1, '—'], ...MONTHS.map((m, i) => [i, m])] })),
+    F('b', 'ביוגרפיה', rec.b || '', { ta: 1, rows: 7, full: 1 }),
+    F('bk', 'ספרים (שורה לכל ספר; הערה אחרי הסימן | )', bk, { ta: 1, rows: 4, full: 1 }),
+    F('s', 'מקורות (מופרדים ב- ; )', rec.s || '', { ta: 1, rows: 2, full: 1 }),
+    F('alt', 'שמות חלופיים לחיפוש (מופרדים ב- ; )', row[11] || '', { ta: 1, rows: 2, full: 1 }),
+    ...actionBar(id, () => applyRb(id), () => delRb(id)));
+}
+async function applyRb(id) {
+  const x = xOf(id), row = IDX[x], oldSh = row[10];
+  const arr = await loadShard(oldSh); let rec = findRec(arr, id);
+  if (!rec) { rec = { i: id, n: row[1] }; insertRec(arr, rec); }
+  if (!val('n')) { alert('חובה למלא שם.'); return; }
+  if (!pending.has(id)) pending.set(id, { cat: 'rb', kind: 'edit', orig: { row: JSON.parse(JSON.stringify(row)), rec: JSON.parse(JSON.stringify(rec)) } });
+  const oldName = row[1], set = (k, v) => { if (v) rec[k] = v; else delete rec[k]; };
+  RB_FIELDS.forEach(([k]) => { if (k === 'n') rec.n = val('n'); else set(k, val(k)); });
+  set('b', $('#f_b').value.trim()); set('s', val('s'));
+  const bks = $('#f_bk').value.split('\n').map(l => l.trim()).filter(Boolean).map(l => { const p = l.indexOf('|'); return p < 0 ? [l, ''] : [l.slice(0, p).trim(), l.slice(p + 1).trim()]; });
+  if (bks.length) rec.bk = bks; else delete rec.bk;
+  row[1] = rec.n; row[2] = rec.k || ''; row[3] = +val('by') || 0; row[4] = +val('dy') || 0;
+  row[5] = +val('yd') || 0; row[6] = +$('#f_ym').value;
+  if (!row[5] && row[6] < 0) { row[5] = 0; row[6] = -1; }
+  row[7] = bks.map(b => b[0]).join('; ').slice(0, 160); row[9] = (rec.r || '').slice(0, 60);
+  const alt = val('alt'); row.length = 11; if (alt) row[11] = alt;
+  NORM.delete(id);
+  const o = shardFor(oldName), nw = shardFor(rec.n);
+  if (rec.n !== oldName) {
+    IDX.splice(xOf(id), 1);
+    if (o === oldSh && nw >= 0 && nw !== oldSh) { const narr = await loadShard(nw); arr.splice(arr.indexOf(rec), 1); insertRec(narr, rec); row[10] = nw; dirty.add(nw); }
+    insertRow(row);
+  }
+  dirty.add(oldSh);
+  const p = pending.get(id); if (p.kind !== 'add') p.kind = 'edit';
+  refreshPending(); toast('השינוי הוחל. לא לשכוח לשמור.'); await openRb(id);
+}
+async function delRb(id) {
+  const x = xOf(id), row = IDX[x];
+  if (!confirm(`למחוק את הערך "${row[1]}"?\n(המחיקה נכנסת לקבצים רק בשמירה, ואפשר לבטל אותה ברשימת "שינויים".)`)) return;
+  const arr = await loadShard(row[10]), rec = findRec(arr, id), p = pending.get(id);
+  if (p && p.kind === 'add') pending.delete(id);
+  else if (!p) pending.set(id, { cat: 'rb', kind: 'del', orig: { row: JSON.parse(JSON.stringify(row)), rec: JSON.parse(JSON.stringify(rec || { i: id, n: row[1] })) } });
+  else p.kind = 'del';
+  if (rec) arr.splice(arr.indexOf(rec), 1);
+  IDX.splice(x, 1); NORM.delete(id); dirty.add(row[10]);
+  cur = null; showEmpty(); refreshPending(); renderList(); setStatus(); toast('הערך נמחק (בזיכרון)');
+}
+
+/* ----- ביטול שינוי ----- */
+async function revert(ref) {
+  const p = pending.get(ref); if (!p) return;
+  if (p.cat === 'rb') {
+    const x = xOf(ref);
+    if (x >= 0) { const row = IDX[x], arr = await loadShard(row[10]), r = findRec(arr, ref); if (r) arr.splice(arr.indexOf(r), 1); IDX.splice(x, 1); dirty.add(row[10]); }
+    if (p.orig) { const row = p.orig.row, arr = await loadShard(row[10]); insertRec(arr, p.orig.rec); insertRow(row); dirty.add(row[10]); }
+    NORM.delete(ref);
+  } else {
+    const a = arrOf(p.cat), i = a.indexOf(ref);
+    if (p.kind === 'add') { if (i >= 0) a.splice(i, 1); }
+    else {
+      if (i >= 0) a.splice(i, 1);
+      Object.keys(ref).forEach(k => delete ref[k]); Object.assign(ref, p.orig.obj);
+      const m = M.get(ref); if (m) { m.e = p.orig.enr; m.n = null; }
+      reinsert(p.cat, ref, p.orig);
+    }
+  }
+  pending.delete(ref); refreshPending(); renderList(); setStatus();
+  if (cur && cur.ref === ref) { (p.kind === 'add') ? (cur = null, showEmpty()) : openItem(p.cat, ref); }
+  toast('השינוי בוטל');
+}
+
+/* ----- ערך חדש ----- */
+const dNew = $('#dNew');
+$('#nCat').append(...Object.entries(CATS).map(([k, v]) => el('option', { value: k, textContent: v })));
+$('#nCat').onchange = () => { $('#nSecBox').style.display = $('#nCat').value === 'tn' ? '' : 'none'; };
+$('#bNew').onclick = () => {
+  $('#nCat').value = catF === 'all' ? 'rb' : catF; $('#nCat').onchange(); $('#nName').value = '';
+  $('#nSec').textContent = ''; $('#nSec').append(...TN_SECS.map(s => el('option', { value: s, textContent: s })));
+  dNew.showModal(); $('#nName').focus();
+};
+$('#nCancel').onclick = () => dNew.close();
+$('#nGo').onclick = async () => {
+  const cat = $('#nCat').value, name = $('#nName').value.trim(); if (!name) return;
+  dNew.close(); let ref;
+  if (cat === 'rb') {
+    const sh = Math.max(0, shardFor(name)), id = nextId++, arr = await loadShard(sh), rec = { i: id, n: name };
+    insertRec(arr, rec); insertRow([id, name, '', 0, 0, 0, -1, '', '', '', sh]); dirty.add(sh); ref = id;
+    pending.set(id, { cat, kind: 'add', orig: null });
+  } else if (cat === 'ta') {
+    ref = { i: TA.length, n: name, l: letterOf(name), b: '' }; M.set(ref, {}); placeTa(ref);
+    pending.set(ref, { cat, kind: 'add', orig: null });
+  } else {
+    ref = { sec: $('#nSec').value, type: 'man1', tip: TN_TIPS.man1, y1: '', y2: '', name, desc: '' }; M.set(ref, {}); placeAfterSec(ref, ref.sec);
+    pending.set(ref, { cat, kind: 'add', orig: null });
+  }
+  catF = cat; tab = 'search'; document.querySelectorAll('.tabs button').forEach(x => x.classList.toggle('on', x.dataset.t === 'search'));
+  $('#sbox').style.display = ''; $('#q').value = name; refreshPending(); renderList(); setStatus(); openItem(cat, ref, true);
+};
+
+/* ====================== גרסה ====================== */
+function bump(v) { let [a, b, c] = v.split('.').map(Number); c++; if (c > 9) { c = 0; b++; } if (b > 9) { b = 0; a++; } return `${a}.${b}.${c}`; }
+const cnt = k => [...pending.values()].filter(p => p.kind === k).length;
+const defaultMsg = v => `ביוגרפיות v${v}: עריכת נתונים (${cnt('edit')} עריכות, ${cnt('add')} חדשים, ${cnt('del')} מחיקות)`;
+const dlg = $('#dlg'), log = $('#log');
+const say = (m, c) => { log.style.display = 'block'; log.append(el('div', { className: c || '', textContent: m })); log.scrollTop = log.scrollHeight; };
+function updDlg() {
+  const nv = $('#oBump').checked ? bump(manifest.version) : manifest.version;
+  $('#vOld').textContent = manifest.version; $('#vNew').textContent = nv; $('#oMsg').value = defaultMsg(nv);
+  $('#ghBox').style.display = $('#oPush').checked ? '' : 'none';
+}
+$('#bSave').onclick = () => {
+  log.textContent = ''; log.style.display = 'none';
+  const per = Object.keys(CATS).map(c => { const n = [...pending.values()].filter(p => p.cat === c).length; return n ? `${CATS[c]}: ${n}` : ''; }).filter(Boolean).join(' · ');
+  $('#dSum').textContent = `${pending.size} שינויים ממתינים (${per}).`;
+  $('#ghTok').value = localStorage.getItem('bio-gh-tok') || ''; $('#ghRem').checked = !!localStorage.getItem('bio-gh-tok');
+  $('#ghRepo').value = localStorage.getItem('bio-gh-repo') || REPO_DEFAULT;
+  updDlg(); dlg.showModal();
+};
+$('#oBump').onchange = $('#oPush').onchange = updDlg;
+$('#dCancel').onclick = () => dlg.close();
+$('#dCopy').onclick = async () => { await navigator.clipboard.writeText(`git add -A && git commit -m "${$('#oMsg').value.replace(/"/g, "'")}" && git push`); toast('הפקודה הועתקה'); };
+
+/* ====================== ZIP ====================== */
+const CRC = (() => { const t = new Uint32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; t[n] = c >>> 0; } return t; })();
+function crc32(u) { let c = 0xFFFFFFFF; for (let i = 0; i < u.length; i++) c = CRC[(c ^ u[i]) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; }
+async function deflate(u) { return new Uint8Array(await new Response(new Blob([u]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()); }
+async function* walk(d, pre = '') { for await (const [n, h] of d.entries()) { if (h.kind === 'directory') yield* walk(h, pre + n + '/'); else yield [pre + n, h]; } }
+async function buildZip() {
+  const parts = [], cen = []; let off = 0; const enc = new TextEncoder();
+  const d = new Date(), dt = ((d.getFullYear() - 1980) << 9 | (d.getMonth() + 1) << 5 | d.getDate()), tm = (d.getHours() << 11 | d.getMinutes() << 5 | d.getSeconds() >> 1);
+  for await (const [path, h] of walk(srcDir)) {
+    const u = new Uint8Array(await (await h.getFile()).arrayBuffer()), c = await deflate(u), nm = enc.encode(path), crc = crc32(u);
+    const lh = new DataView(new ArrayBuffer(30));
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 8, 2], [10, tm, 2], [12, dt, 2], [14, crc, 4], [18, c.length, 4], [22, u.length, 4], [26, nm.length, 2], [28, 0, 2]].forEach(([o, v, s]) => s === 4 ? lh.setUint32(o, v, true) : lh.setUint16(o, v, true));
+    parts.push(lh.buffer, nm, c);
+    const ch = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 8, 2], [12, tm, 2], [14, dt, 2], [16, crc, 4], [20, c.length, 4], [24, u.length, 4], [28, nm.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2], [36, 0, 2], [38, 0, 4], [42, off, 4]].forEach(([o, v, s]) => s === 4 ? ch.setUint32(o, v, true) : ch.setUint16(o, v, true));
+    cen.push(ch.buffer, nm); off += 30 + nm.length + c.length;
+  }
+  const cs = cen.reduce((s, b) => s + b.byteLength, 0), n = cen.length / 2, e = new DataView(new ArrayBuffer(22));
+  e.setUint32(0, 0x06054b50, true); e.setUint16(8, n, true); e.setUint16(10, n, true); e.setUint32(12, cs, true); e.setUint32(16, off, true);
+  return new Blob([...parts, ...cen, e.buffer], { type: 'application/zip' });
+}
+
+/* ====================== GitHub ====================== */
+async function gh(tok, repo, path, opt = {}) {
+  const r = await fetch(`https://api.github.com/repos/${repo}/${path}`, { ...opt, headers: { Authorization: 'Bearer ' + tok, Accept: 'application/vnd.github+json', 'Content-Type': 'application/json' } });
+  if (!r.ok) throw new Error(`GitHub ${r.status}: ${(await r.text()).slice(0, 200)}`);
+  return r.json();
+}
+const b64 = blob => new Promise(ok => { const f = new FileReader(); f.onload = () => ok(f.result.split(',')[1]); f.readAsDataURL(blob); });
+async function pushGit(files, msg, tok, repo, branch) {
+  const ref = await gh(tok, repo, `git/ref/heads/${branch}`);
+  const head = await gh(tok, repo, `git/commits/${ref.object.sha}`);
+  const tree = [];
+  for (const [path, text] of files) {
+    say('מעלה ' + path + '…');
+    const b = await gh(tok, repo, 'git/blobs', { method: 'POST', body: JSON.stringify({ content: await b64(new Blob([text])), encoding: 'base64' }) });
+    tree.push({ path, mode: '100644', type: 'blob', sha: b.sha });
+  }
+  const t = await gh(tok, repo, 'git/trees', { method: 'POST', body: JSON.stringify({ base_tree: head.tree.sha, tree }) });
+  const c = await gh(tok, repo, 'git/commits', { method: 'POST', body: JSON.stringify({ message: msg, tree: t.sha, parents: [ref.object.sha] }) });
+  await gh(tok, repo, `git/refs/heads/${branch}`, { method: 'PATCH', body: JSON.stringify({ sha: c.sha }) });
+  return c.sha;
+}
+
+/* ====================== שמירה ====================== */
+function serializeTa() {           // מספר מחדש (i = מיקום במערך, כי התוסף ניגש לפי אינדקס) וממפה את ההעשרה
+  const E = {};
+  TA.forEach((e, i) => { const m = M.get(e); e.i = i; if (m && m.e) E[i] = m.e; });
+  return {
+    data: 'window.BIO_DATA = ' + jsEsc(JSON.stringify(TA)) + ';',
+    enrich: 'window.BIO_ENRICH = ' + JSON.stringify(E, null, 4).replace(/\n/g, '\r\n') + ';\r\n'
+  };
+}
+$('#dGo').onclick = async () => {
+  const go = $('#dGo'); go.disabled = true; log.textContent = '';
+  try {
+    const bumpOn = $('#oBump').checked, push = $('#oPush').checked, msg = $('#oMsg').value.trim() || defaultMsg('');
+    const tok = $('#ghTok').value.trim(), repo = $('#ghRepo').value.trim(), branch = $('#ghBranch').value.trim() || 'main';
+    if (push && (!tok || !repo)) throw new Error('חסרים token או מאגר');
+    const touched = new Set([...pending.values()].map(p => p.cat));
+    const out = new Map();                       // נתיב יחסית ל-src -> תוכן
+    say('מכין קבצי נתונים…');
+    if (touched.has('rb')) { dirty.forEach(n => out.set(`data/rabbis/rb-${ver}-${n}.js`, shardText(n, shards.get(n).arr))); out.set('data/rabbis/rb-index.js', idxText(ver)); }
+    if (touched.has('ta')) { const s = serializeTa(); out.set('data/bio-data.js', s.data); out.set('data/bio-enrich.js', s.enrich); }
+    if (touched.has('tn')) out.set('seder-hadorot/seder-list.js', 'window.SEDER = ' + jsEsc(JSON.stringify(SEDER)) + ';');
+    for (const [path, text] of out) { await writeSrc(path, text); say('נכתב ' + path, 'ok'); }
+    let nv = manifest.version;
+    if (bumpOn) {
+      nv = bump(manifest.version);
+      manifestText = manifestText.replace(/("version"\s*:\s*")[^"]+(")/, `$1${nv}$2`);
+      await writeSrc('manifest.json', manifestText); manifest.version = nv; say('גרסה עודכנה ל-' + nv, 'ok');
+    }
+    if ($('#oZip').checked) { say('בונה קובץ otzplugin…'); const z = await buildZip(); const w = await (await root.getFileHandle('otzaria-biographies.otzplugin', { create: true })).createWritable(); await w.write(z); await w.close(); say(`otzaria-biographies.otzplugin נבנה (${(z.size / 1048576).toFixed(1)}MB)`, 'ok'); }
+    if (push) {
+      localStorage.setItem('bio-gh-repo', repo);
+      if ($('#ghRem').checked) localStorage.setItem('bio-gh-tok', tok); else localStorage.removeItem('bio-gh-tok');
+      say('מתחבר ל-GitHub…');
+      const files = [...out].map(([n, t]) => ['src/' + n, t]);
+      if (bumpOn) files.push(['src/manifest.json', manifestText]);
+      const sha = await pushGit(files, msg, tok, repo, branch);
+      say(`נדחף! קומיט ${sha.slice(0, 7)}. ה-Action יפיק גרסה ${nv}: https://github.com/${repo}/actions`, 'ok');
+      say('הערה: בתיקייה המקומית, אם git מתלונן על קבצים ששונו: git fetch && git reset --hard origin/' + branch);
+    } else say('הקבצים נשמרו מקומית. כדי לפרסם: העתק פקודות git ← טרמינל בתיקיית המאגר.', 'ok');
+    dirty.clear(); pending.clear(); refreshPending(); renderList(); setStatus();
+    say('✔ הסתיים', 'ok');
+  } catch (e) { say('שגיאה: ' + e.message, 'err'); console.error(e); }
+  go.disabled = false;
+};
+
+/* ====================== אתחול ====================== */
+$('#bPick').onclick = async () => {
+  if (!window.showDirectoryPicker) { alert('נדרש דפדפן Chrome או Edge.'); return; }
+  if (pending.size && !confirm('יש שינויים שלא נשמרו. להחליף תיקייה ולאבד אותם?')) return;
+  try { await openRoot(await showDirectoryPicker({ mode: 'readwrite' })); } catch (e) { if (e.name !== 'AbortError') alert(e.message); }
+};
+window.onbeforeunload = e => { if (pending.size) { e.preventDefault(); return ''; } };
+renderChips(null);
+(async () => {
+  try {
+    const h = await idbGet('root'); if (!h) return;
+    const b = $('#bPick'); b.textContent = `המשך עם "${h.name}"`;
+    b.onclick = async () => { if (await h.requestPermission({ mode: 'readwrite' }) === 'granted' && await openRoot(h)) { b.textContent = 'החלף תיקייה'; b.onclick = () => location.reload(); } };
+  } catch (e) { }
+})();
+</script>
+</body>
+</html>

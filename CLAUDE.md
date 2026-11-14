@@ -11,6 +11,7 @@
 - `src/data/` - `bio-data.js`, `bio-enrich.js`, `events-data.js`, `lib-authors.js`, `masaot-data.js`, `yeshivot.js`; `src/data/rabbis/rb-index.js` + `rb-<hash>-N.js` (ביוגרפיות לפי אות, נטענים לפי צורך); `src/seder-hadorot/seder-list.js`.
 - `tools/` - `build_rabbis.py` (מייצר את `src/data/rabbis/`), `hebdates.py`, `rtflib.py`. הנתונים שנוצרו אינם לעריכה ידנית.
 - `build.ps1` - אריזה מקומית.
+- `tools/editor.html` - עורך ביוגרפיות (Chrome/Edge): חיפוש, עריכה, מחיקה, כפילויות; שומר ישירות ל-`src/data/rabbis/`, מעלה גרסה, בונה `.otzplugin` ודוחף ל-GitHub (API). עריכה ידנית של הנתונים עוברת דרכו.
 
 ## בנייה והרצה
 - בנייה מקומית: `.\build.ps1` (יוצר `otzaria-biographies.otzplugin` בשורש; הארכיון שטוח, `manifest.json` בשורשו). התקנה: הגדרות -> ניהול תוספים -> התקנה מקובץ.
