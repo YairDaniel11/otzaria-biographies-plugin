@@ -21,10 +21,14 @@ on:
 permissions:
   contents: write
 
+# Node.js 20 הוצא משימוש ב-Actions; מריצים כבר עכשיו על Node 24 (ההודעה על validator@v1 ו-action-gh-release).
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+
 jobs:
   release:
     name: Validate, build and publish
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04  # נעוץ: ubuntu-latest עובר לגרסה 26
 
     steps:
       - name: Checkout
